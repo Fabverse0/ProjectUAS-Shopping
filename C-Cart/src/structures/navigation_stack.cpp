@@ -1,6 +1,8 @@
 #include "navigation_stack.h"
 #include <iostream>
 
+using namespace std;
+
 NavigationStack::NavigationStack() : top(nullptr), size(0) {}
 
 NavigationStack::~NavigationStack() {
@@ -9,53 +11,52 @@ NavigationStack::~NavigationStack() {
     }
 }
 
-// ── PUSH (masuk ke halaman baru) ─────────────────────────
-void NavigationStack::push(std::string namaHalaman) {
+// Menambahkan halaman baru ke riwayat
+void NavigationStack::push(string namaHalaman) {
     StackNode* newNode = new StackNode(namaHalaman);
     newNode->next = top;
     top = newNode;
     size++;
 }
 
-// ── POP (kembali ke halaman sebelumnya) ──────────────────
-std::string NavigationStack::pop() {
+// Menghapus dan mendapatkan halaman terakhir
+string NavigationStack::pop() {
     if (isEmpty()) {
         return "";
     }
     StackNode* temp = top;
-    std::string nama = temp->namaHalaman;
+    string nama = temp->namaHalaman;
     top = top->next;
     delete temp;
     size--;
     return nama;
 }
 
-// ── PEEK (lihat halaman sekarang) ────────────────────────
-std::string NavigationStack::peek() const {
+// Melihat halaman aktif sekarang
+string NavigationStack::peek() const {
     if (isEmpty()) return "";
     return top->namaHalaman;
 }
 
-// ── TAMPILKAN RIWAYAT NAVIGASI ───────────────────────────
-void NavigationStack::tampilkan() const {
+// Menampilkan riwayat perpindahan halaman
+void NavigationStack::display() const {
     if (isEmpty()) {
-        std::cout << "  Stack navigasi kosong." << std::endl;
+        cout << "  Stack navigasi kosong." << endl;
         return;
     }
 
-    std::cout << "  Riwayat navigasi (atas = sekarang):" << std::endl;
+    cout << "  Riwayat navigasi (atas = sekarang):" << endl;
     StackNode* curr = top;
     int no = 1;
     while (curr != nullptr) {
-        std::cout << "  " << no << ". " << curr->namaHalaman;
-        if (no == 1) std::cout << " < (sekarang)";
-        std::cout << std::endl;
+        cout << "  " << no << ". " << curr->namaHalaman;
+        if (no == 1) cout << " < (sekarang)";
+        cout << endl;
         curr = curr->next;
         no++;
     }
 }
 
-// ── GETTER ───────────────────────────────────────────────
 bool NavigationStack::isEmpty() const { return top == nullptr; }
-bool NavigationStack::bisaBack() const { return size > 1; }
+bool NavigationStack::canGoBack() const { return size > 1; }
 int NavigationStack::getSize() const { return size; }

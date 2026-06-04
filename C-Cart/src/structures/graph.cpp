@@ -5,29 +5,31 @@
 #include <algorithm>
 #include <set>
 
+using namespace std;
+
 Graph::Graph() {}
 
-void Graph::addCity(std::string city) {
+void Graph::addCity(string city) {
     if (adjList.find(city) == adjList.end()) {
-        adjList[city] = std::list<std::string>();
+        adjList[city] = list<string>();
     }
 }
 
-void Graph::addEdge(std::string from, std::string to) {
+void Graph::addEdge(string from, string to) {
     addCity(from);
     addCity(to);
     adjList[from].push_back(to);
     adjList[to].push_back(from);
 }
 
-std::vector<std::string> Graph::bfsShortestRoute(std::string start, std::string destination) {
+vector<string> Graph::bfsShortestRoute(string start, string destination) {
     if (adjList.find(start) == adjList.end() || adjList.find(destination) == adjList.end()) {
         return {};
     }
 
-    std::queue<std::string> q;
-    std::map<std::string, std::string> parent;
-    std::set<std::string> visited;
+    queue<string> q;
+    map<string, string> parent;
+    set<string> visited;
 
     q.push(start);
     visited.insert(start);
@@ -35,7 +37,7 @@ std::vector<std::string> Graph::bfsShortestRoute(std::string start, std::string 
 
     bool found = false;
     while (!q.empty()) {
-        std::string current = q.front();
+        string current = q.front();
         q.pop();
 
         if (current == destination) {
@@ -43,7 +45,7 @@ std::vector<std::string> Graph::bfsShortestRoute(std::string start, std::string 
             break;
         }
 
-        for (const std::string& neighbor : adjList[current]) {
+        for (const string& neighbor : adjList[current]) {
             if (visited.find(neighbor) == visited.end()) {
                 visited.insert(neighbor);
                 parent[neighbor] = current;
@@ -54,34 +56,33 @@ std::vector<std::string> Graph::bfsShortestRoute(std::string start, std::string 
 
     if (!found) return {};
 
-    std::vector<std::string> path;
-    std::string current = destination;
+    vector<string> path;
+    string current = destination;
     while (current != "") {
         path.push_back(current);
         current = parent[current];
     }
-    std::reverse(path.begin(), path.end());
+    reverse(path.begin(), path.end());
     return path;
 }
 
-std::vector<std::string> Graph::dfsTraversal(std::string start) {
+vector<string> Graph::dfsTraversal(string start) {
     if (adjList.find(start) == adjList.end()) return {};
 
-    std::vector<std::string> result;
-    std::stack<std::string> s;
-    std::set<std::string> visited;
+    vector<string> result;
+    stack<string> s;
+    set<string> visited;
 
     s.push(start);
 
     while (!s.empty()) {
-        std::string current = s.top();
+        string current = s.top();
         s.pop();
 
         if (visited.find(current) == visited.end()) {
             visited.insert(current);
             result.push_back(current);
 
-            // Using list's reverse iterator to match typical DFS behavior
             for (auto it = adjList[current].rbegin(); it != adjList[current].rend(); ++it) {
                 if (visited.find(*it) == visited.end()) {
                     s.push(*it);
@@ -95,22 +96,22 @@ std::vector<std::string> Graph::dfsTraversal(std::string start) {
 bool Graph::isConnected() {
     if (adjList.empty()) return true;
     
-    std::string startCity = adjList.begin()->first;
-    std::vector<std::string> traversal = dfsTraversal(startCity);
+    string startCity = adjList.begin()->first;
+    vector<string> traversal = dfsTraversal(startCity);
     
     return traversal.size() == adjList.size();
 }
 
-void Graph::displayGraph() const {
-    std::cout << "--- Peta Kota (Graph) ---" << std::endl;
+void Graph::display() const {
+    cout << "--- Peta Kota (Graph) ---" << endl;
     for (auto const& [city, neighbors] : adjList) {
-        std::cout << city << " -> ";
+        cout << city << " -> ";
         bool first = true;
-        for (const std::string& neighbor : neighbors) {
-            if (!first) std::cout << ", ";
-            std::cout << neighbor;
+        for (const string& neighbor : neighbors) {
+            if (!first) cout << ", ";
+            cout << neighbor;
             first = false;
         }
-        std::cout << std::endl;
+        cout << endl;
     }
 }

@@ -3,9 +3,7 @@
 
 #include <string>
 
-/**
- * @brief Order model representing a completed purchase.
- */
+// Model untuk data pesanan (setelah checkout)
 class Order {
 public:
     int orderId;
@@ -14,25 +12,14 @@ public:
     double totalHarga;
     std::string status;
 
-    /**
-     * @brief Default constructor
-     */
     Order();
-
-    /**
-     * @brief Parameterized constructor
-     */
     Order(int id, std::string nama, std::string kota, double total);
 
-    /**
-     * @brief Update the order status
-     */
+    // Mengupdate status pesanan
     void updateStatus(std::string newStatus);
 
-    /**
-     * @brief Display order data to console
-     */
-    void tampilkan() const;
+    // Menampilkan detail pesanan
+    void display() const;
 };
 
 #endif // ORDER_H

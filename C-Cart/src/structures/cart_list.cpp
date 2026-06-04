@@ -2,57 +2,55 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 CartList::CartList() : head(nullptr), size(0) {}
 
 CartList::~CartList() {
-    kosongkan();
+    clear();
 }
 
-// ── INSERT ──────────────────────────────────────────────
-void CartList::tambahProduk(Product p, int qty) {
-    // Cek apakah produk sudah ada → tambah qty saja
+// Menambah produk ke keranjang
+void CartList::addProduct(Product p, int qty) {
     CartNode* curr = head;
     while (curr != nullptr) {
         if (curr->product.id == p.id) {
             curr->qty += qty;
-            std::cout << "> Qty " << p.nama << " diupdate menjadi " << curr->qty << std::endl;
+            cout << "> Qty " << p.nama << " diupdate menjadi " << curr->qty << endl;
             return;
         }
         curr = curr->next;
     }
 
-    // Produk belum ada → insert node baru di depan
     CartNode* newNode = new CartNode(p, qty);
     newNode->next = head;
     head = newNode;
     size++;
-    std::cout << "> " << p.nama << " ditambahkan ke keranjang!" << std::endl;
+    cout << "> " << p.nama << " ditambahkan ke keranjang!" << endl;
 }
 
-// ── DELETE ──────────────────────────────────────────────
-void CartList::hapusProduk(int productId) {
+// Menghapus produk dari keranjang
+void CartList::removeProduct(int productId) {
     if (head == nullptr) {
-        std::cout << "Keranjang sudah kosong!" << std::endl;
+        cout << "Keranjang sudah kosong!" << endl;
         return;
     }
 
-    // Cek node pertama
     if (head->product.id == productId) {
         CartNode* temp = head;
         head = head->next;
-        std::cout << "> " << temp->product.nama << " dihapus dari keranjang." << std::endl;
+        cout << "> " << temp->product.nama << " dihapus dari keranjang." << endl;
         delete temp;
         size--;
         return;
     }
 
-    // Cari di node berikutnya
     CartNode* curr = head;
     while (curr->next != nullptr) {
         if (curr->next->product.id == productId) {
             CartNode* temp = curr->next;
             curr->next = temp->next;
-            std::cout << "> " << temp->product.nama << " dihapus dari keranjang." << std::endl;
+            cout << "> " << temp->product.nama << " dihapus dari keranjang." << endl;
             delete temp;
             size--;
             return;
@@ -60,29 +58,29 @@ void CartList::hapusProduk(int productId) {
         curr = curr->next;
     }
 
-    std::cout << "Produk tidak ditemukan di keranjang." << std::endl;
+    cout << "Produk tidak ditemukan di keranjang." << endl;
 }
 
-// ── UPDATE QTY ──────────────────────────────────────────
+// Mengupdate jumlah produk
 void CartList::updateQty(int productId, int qty) {
     CartNode* curr = head;
     while (curr != nullptr) {
         if (curr->product.id == productId) {
             if (qty <= 0) {
-                hapusProduk(productId);
+                removeProduct(productId);
             } else {
                 curr->qty = qty;
-                std::cout << "> Qty diupdate menjadi " << qty << std::endl;
+                cout << "> Qty diupdate menjadi " << qty << endl;
             }
             return;
         }
         curr = curr->next;
     }
-    std::cout << "Produk tidak ditemukan di keranjang." << std::endl;
+    cout << "Produk tidak ditemukan di keranjang." << endl;
 }
 
-// ── KOSONGKAN ───────────────────────────────────────────
-void CartList::kosongkan() {
+// Mengosongkan keranjang
+void CartList::clear() {
     CartNode* curr = head;
     while (curr != nullptr) {
         CartNode* temp = curr;
@@ -93,43 +91,43 @@ void CartList::kosongkan() {
     size = 0;
 }
 
-// ── TAMPILKAN ───────────────────────────────────────────
-void CartList::tampilkan() const {
+// Menampilkan daftar belanjaan
+void CartList::display() const {
     if (head == nullptr) {
-        std::cout << "  Keranjang masih kosong." << std::endl;
+        cout << "  Keranjang masih kosong." << endl;
         return;
     }
 
-    std::cout << std::string(55, '-') << std::endl;
-    std::cout << std::left
-              << std::setw(4)  << "No"
-              << std::setw(22) << "Nama Produk"
-              << std::setw(5)  << "Qty"
-              << std::setw(15) << "Harga Satuan"
-              << "Subtotal" << std::endl;
-    std::cout << std::string(55, '-') << std::endl;
+    cout << string(55, '-') << endl;
+    cout << left
+         << setw(4)  << "No"
+         << setw(22) << "Nama Produk"
+         << setw(5)  << "Qty"
+         << setw(15) << "Harga Satuan"
+         << "Subtotal" << endl;
+    cout << string(55, '-') << endl;
 
     CartNode* curr = head;
     int no = 1;
     while (curr != nullptr) {
         double subtotal = curr->product.harga * curr->qty;
-        std::cout << std::left
-                  << std::setw(4)  << no
-                  << std::setw(22) << curr->product.nama
-                  << std::setw(5)  << curr->qty
-                  << "Rp " << std::setw(12) << std::fixed << std::setprecision(0) << curr->product.harga
-                  << "Rp " << subtotal << std::endl;
+        cout << left
+             << setw(4)  << no
+             << setw(22) << curr->product.nama
+             << setw(5)  << curr->qty
+             << "Rp " << setw(12) << fixed << setprecision(0) << curr->product.harga
+             << "Rp " << subtotal << endl;
         curr = curr->next;
         no++;
     }
 
-    std::cout << std::string(55, '-') << std::endl;
-    std::cout << "TOTAL: Rp " << std::fixed << std::setprecision(0) << totalHarga() << std::endl;
-    std::cout << std::string(55, '-') << std::endl;
+    cout << string(55, '-') << endl;
+    cout << "TOTAL: Rp " << fixed << setprecision(0) << totalPrice() << endl;
+    cout << string(55, '-') << endl;
 }
 
-// ── TOTAL HARGA (traversal semua node) ──────────────────
-double CartList::totalHarga() const {
+// Menghitung total harga belanjaan
+double CartList::totalPrice() const {
     double total = 0;
     CartNode* curr = head;
     while (curr != nullptr) {
@@ -139,12 +137,11 @@ double CartList::totalHarga() const {
     return total;
 }
 
-// ── GETTER ──────────────────────────────────────────────
 bool CartList::isEmpty() const { return head == nullptr; }
 int CartList::getSize() const { return size; }
 CartNode* CartList::getHead() const { return head; }
 
-bool CartList::produkAda(int productId) const {
+bool CartList::hasProduct(int productId) const {
     CartNode* curr = head;
     while (curr != nullptr) {
         if (curr->product.id == productId) return true;

@@ -5,10 +5,7 @@
 #include <string>
 #include <vector>
 
-/**
- * @brief Service class to calculate and provide delivery routes.
- * Acts as a bridge between UI and Graph structure.
- */
+// Layanan untuk perhitungan dan penyediaan rute pengiriman
 class RouteService {
 private:
     Graph cityGraph;
@@ -17,27 +14,17 @@ private:
 public:
     RouteService();
 
-    /**
-     * @brief Initialize graph with default cities and edges
-     */
+    // Inisialisasi peta default
     void initializeDefaultGraph();
 
-    /**
-     * @brief Find the delivery route from Jakarta to destination
-     * Uses BFS for shortest path
-     */
+    // Mencari rute pengiriman ke kota tujuan (BFS)
     std::vector<std::string> findDeliveryRoute(std::string destination);
 
-    /**
-     * @brief Get audit of all connected cities
-     * Uses DFS for traversal
-     */
+    // Audit seluruh jaringan kota yang terhubung (DFS)
     std::vector<std::string> auditNetwork();
 
-    /**
-     * @brief Display the current city network
-     */
-    void displayGraph() const;
+    // Menampilkan peta jaringan kota
+    void displayNetwork() const;
 };
 
 #endif // ROUTE_SERVICE_H

@@ -6,10 +6,7 @@
 #include "../structures/bst.h"
 #include <vector>
 
-/**
- * @brief Service class to handle product-related operations.
- * Acts as a bridge between UI and data structures.
- */
+// Layanan untuk mengelola operasi produk (Katalog Utama)
 class ProductService {
 private:
     AVLTree catalog;
@@ -17,55 +14,32 @@ private:
 public:
     ProductService();
 
-    /**
-     * @brief Load 15 hardcoded products into the catalog
-     */
+    // Memuat 15 produk hardcoded ke katalog
     void loadHardcodedProducts();
     
-    /**
-     * @brief Get all products sorted by ID
-     */
+    // Mendapatkan semua produk terurut berdasarkan ID
     std::vector<Product> getAllProducts();
 
-    /**
-     * @brief Find a product by its ID using AVL search
-     */
+    // Mencari produk berdasarkan ID menggunakan AVL search
     Product* findProductById(int id);
 
-    /**
-     * @brief Insert a new product
-     */
+    // Menambah produk baru
     void insertProduct(Product p);
 
-    /**
-     * @brief Delete a product by ID
-     */
+    // Menghapus produk berdasarkan ID
     void deleteProduct(int id);
 
-    /**
-     * @brief Get all products sorted by price using BST
-     */
+    // Mendapatkan produk terurut berdasarkan harga menggunakan BST
     std::vector<Product> getProductsSortedByPrice();
     
-    /**
-     * @brief Binary Search implementation for product ID
-     * @param products Sorted vector of products by ID
-     * @param id The ID to search for
-     * @return Pointer to the product if found, nullptr otherwise
-     */
+    // Implementasi Binary Search untuk pencarian ID
     Product* binarySearchById(const std::vector<Product>& products, int id);
 
-    /**
-     * @brief Demo function to insert a product that might trigger AVL balancing
-     */
+    // Fungsi demo untuk menyeimbangkan AVL Tree
     void insertDemoProduct();
-
-    /**
-     * @brief Demo function to delete a product that might trigger AVL balancing
-     */
     void deleteDemoProduct();
 
-    // Traversal demos
+    // Fungsi pembantu untuk traversal
     std::vector<Product> getInorder();
     std::vector<Product> getPreorder();
     std::vector<Product> getPostorder();

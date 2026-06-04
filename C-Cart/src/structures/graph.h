@@ -6,10 +6,7 @@
 #include <map>
 #include <list>
 
-/**
- * @brief Graph data structure for delivery route calculations.
- * Manual implementation using adjacency list.
- */
+// Struktur data Graph untuk perhitungan rute pengiriman kota
 class Graph {
 private:
     std::map<std::string, std::list<std::string>> adjList;
@@ -17,37 +14,23 @@ private:
 public:
     Graph();
 
-    /**
-     * @brief Add a city to the graph
-     */
+    // Menambah kota ke dalam graph
     void addCity(std::string city);
 
-    /**
-     * @brief Add a bidirectional edge between two cities
-     */
+    // Menambah jalur dua arah antar kota
     void addEdge(std::string from, std::string to);
 
-    /**
-     * @brief Find the shortest route between two cities using BFS
-     * @return Vector of city names in the shortest path
-     */
+    // Mencari rute terpendek dengan BFS
     std::vector<std::string> bfsShortestRoute(std::string start, std::string destination);
 
-    /**
-     * @brief Traverse the graph using DFS
-     * @return Vector of city names in traversal order
-     */
+    // Penelusuran semua kota dengan DFS
     std::vector<std::string> dfsTraversal(std::string start);
 
-    /**
-     * @brief Check if all cities are connected (using BFS from Jakarta)
-     */
+    // Mengecek apakah semua kota terhubung
     bool isConnected();
 
-    /**
-     * @brief Display the graph's adjacency list
-     */
-    void displayGraph() const;
+    // Menampilkan adjacency list
+    void display() const;
 };
 
 #endif // GRAPH_H

@@ -3,9 +3,7 @@
 
 #include <string>
 
-/**
- * @brief Node untuk Circular Linked List banner promo
- */
+// Node untuk Circular Linked List banner promo
 struct PromoNode {
     std::string teks;
     PromoNode* next;
@@ -13,11 +11,7 @@ struct PromoNode {
     PromoNode(std::string teks) : teks(teks), next(nullptr) {}
 };
 
-/**
- * @brief Circular Linked List untuk banner promo
- * Node terakhir menunjuk kembali ke node pertama (sirkuler)
- * Digunakan untuk rotasi banner promo di halaman utama
- */
+// Struktur data Circular Linked List untuk banner promo sirkuler
 class PromoList {
 private:
     PromoNode* head;
@@ -28,11 +22,15 @@ public:
     PromoList();
     ~PromoList();
 
-    void tambahPromo(std::string teks);   // insert node promo
-    void nextPromo();                      // geser ke promo berikutnya
-    void tampilkanCurrent() const;         // tampilkan promo sekarang
-    void tampilkanSemua() const;           // tampilkan semua promo
+    // Operasi promo
+    void tambahPromo(std::string teks);
+    void nextPromo();
 
+    // Menampilkan promo
+    void displayCurrent() const;
+    void displayAll() const;
+
+    // Getter
     bool isEmpty() const;
     int getSize() const;
     std::string getCurrentTeks() const;

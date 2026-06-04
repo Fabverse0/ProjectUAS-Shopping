@@ -3,9 +3,7 @@
 
 #include <string>
 
-/**
- * @brief Node untuk Stack navigasi halaman
- */
+// Node untuk Stack navigasi halaman
 struct StackNode {
     std::string namaHalaman;
     StackNode* next;
@@ -13,12 +11,7 @@ struct StackNode {
     StackNode(std::string nama) : namaHalaman(nama), next(nullptr) {}
 };
 
-/**
- * @brief Stack (Linked List) untuk riwayat navigasi halaman
- * Push saat pindah halaman maju
- * Pop saat tombol Back ditekan
- * Tombol Back tidak aktif saat Stack kosong (di Layar 1)
- */
+// Struktur data Stack (Linked List) untuk menyimpan riwayat halaman
 class NavigationStack {
 private:
     StackNode* top;
@@ -28,13 +21,17 @@ public:
     NavigationStack();
     ~NavigationStack();
 
-    void push(std::string namaHalaman);   // masuk ke halaman baru
-    std::string pop();                     // kembali ke halaman sebelumnya
-    std::string peek() const;             // lihat halaman sekarang
-    void tampilkan() const;               // tampilkan riwayat navigasi
+    // Operasi stack
+    void push(std::string namaHalaman);
+    std::string pop();
+    std::string peek() const;
 
+    // Menampilkan riwayat
+    void display() const;
+
+    // Pengecekan
     bool isEmpty() const;
-    bool bisaBack() const;                // cek apakah bisa Back
+    bool canGoBack() const;
     int getSize() const;
 };
 

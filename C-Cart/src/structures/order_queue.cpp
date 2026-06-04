@@ -1,6 +1,8 @@
 #include "order_queue.h"
 #include <iostream>
 
+using namespace std;
+
 OrderQueue::OrderQueue() : frontNode(nullptr), rearNode(nullptr), size(0) {}
 
 OrderQueue::~OrderQueue() {
@@ -45,17 +47,17 @@ int OrderQueue::getSize() const {
     return size;
 }
 
-void OrderQueue::displayQueue() const {
+void OrderQueue::display() const {
     if (isEmpty()) {
-        std::cout << "Antrean pesanan kosong." << std::endl;
+        cout << "Antrean pesanan kosong." << endl;
         return;
     }
 
     OrderNode* current = frontNode;
-    std::cout << "--- Daftar Antrean Pesanan ---" << std::endl;
+    cout << "--- Daftar Antrean Pesanan ---" << endl;
     while (current != nullptr) {
-        current->data.tampilkan();
-        std::cout << "-----------------------------" << std::endl;
+        current->data.display();
+        cout << "-----------------------------" << endl;
         current = current->next;
     }
 }

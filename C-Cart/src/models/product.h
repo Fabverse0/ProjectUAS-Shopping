@@ -3,9 +3,7 @@
 
 #include <string>
 
-/**
- * @brief Product model - merepresentasikan satu produk di katalog
- */
+// Model untuk data produk
 class Product {
 public:
     int id;
@@ -16,7 +14,8 @@ public:
     Product();
     Product(int id, std::string nama, std::string kategori, double harga);
 
-    void tampilkan() const;
+    // Menampilkan info produk singkat
+    void display() const;
 };
 
 #endif // PRODUCT_H

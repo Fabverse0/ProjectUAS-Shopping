@@ -1,17 +1,19 @@
 #include "checkout_service.h"
 #include <iostream>
 
+using namespace std;
+
 CheckoutService::CheckoutService() : nextOrderId(1) {}
 
-void CheckoutService::createOrder(std::string namaPemesan, std::string kotaTujuan, double totalHarga) {
+void CheckoutService::createOrder(string namaPemesan, string kotaTujuan, double totalHarga) {
     Order newOrder(nextOrderId++, namaPemesan, kotaTujuan, totalHarga);
     queue.enqueue(newOrder);
-    std::cout << "Pesanan berhasil dibuat! Order ID: " << newOrder.orderId << std::endl;
+    cout << "Pesanan berhasil dibuat! Order ID: " << newOrder.orderId << endl;
 }
 
 void CheckoutService::processNextOrder() {
     if (queue.isEmpty()) {
-        std::cout << "Tidak ada pesanan untuk diproses." << std::endl;
+        cout << "Tidak ada pesanan untuk diproses." << endl;
         return;
     }
 
@@ -19,12 +21,12 @@ void CheckoutService::processNextOrder() {
     
     if (currentOrder->status == "Menunggu") {
         currentOrder->updateStatus("Diproses");
-        std::cout << "Pesanan #" << currentOrder->orderId << " sedang diproses." << std::endl;
+        cout << "Pesanan #" << currentOrder->orderId << " sedang diproses." << endl;
     } else if (currentOrder->status == "Diproses") {
         currentOrder->updateStatus("Selesai");
-        std::cout << "Pesanan #" << currentOrder->orderId << " telah selesai diproses." << std::endl;
+        cout << "Pesanan #" << currentOrder->orderId << " telah selesai diproses." << endl;
         queue.dequeue();
-        std::cout << "Pesanan dikeluarkan dari antrean." << std::endl;
+        cout << "Pesanan dikeluarkan dari antrean." << endl;
     }
 }
 
@@ -37,5 +39,5 @@ bool CheckoutService::isQueueEmpty() const {
 }
 
 void CheckoutService::displayOrders() const {
-    queue.displayQueue();
+    queue.display();
 }
