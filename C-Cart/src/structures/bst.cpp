@@ -1,5 +1,7 @@
 #include "bst.h"
 
+using namespace std;
+
 BST::BST() : root(nullptr) {}
 
 BST::~BST() {
@@ -22,7 +24,6 @@ BSTNode* BST::insert(BSTNode* node, Product product) {
     if (product.harga < node->data.harga) {
         node->left = insert(node->left, product);
     } else {
-        // If price is greater or equal, go to right
         node->right = insert(node->right, product);
     }
 
@@ -33,7 +34,7 @@ void BST::insert(Product product) {
     root = insert(root, product);
 }
 
-void BST::inorder(BSTNode* node, std::vector<Product>& products) {
+void BST::inorder(BSTNode* node, vector<Product>& products) {
     if (node) {
         inorder(node->left, products);
         products.push_back(node->data);
@@ -41,8 +42,8 @@ void BST::inorder(BSTNode* node, std::vector<Product>& products) {
     }
 }
 
-std::vector<Product> BST::inorderTraversal() {
-    std::vector<Product> products;
+vector<Product> BST::inorderTraversal() {
+    vector<Product> products;
     inorder(root, products);
     return products;
 }

@@ -1,5 +1,7 @@
 #include "product_service.h"
 
+using namespace std;
+
 ProductService::ProductService() {
     loadHardcodedProducts();
 }
@@ -22,7 +24,7 @@ void ProductService::loadHardcodedProducts() {
     insertProduct(Product(503, "SteelSeries Rival 3", "Mouse", 500000));
 }
 
-std::vector<Product> ProductService::getAllProducts() {
+vector<Product> ProductService::getAllProducts() {
     return catalog.inorderTraversal();
 }
 
@@ -38,16 +40,16 @@ void ProductService::deleteProduct(int id) {
     catalog.deleteProduct(id);
 }
 
-std::vector<Product> ProductService::getProductsSortedByPrice() {
+vector<Product> ProductService::getProductsSortedByPrice() {
     BST priceTree;
-    std::vector<Product> all = catalog.inorderTraversal();
+    vector<Product> all = catalog.inorderTraversal();
     for (const auto& p : all) {
         priceTree.insert(p);
     }
     return priceTree.inorderTraversal();
 }
 
-Product* ProductService::binarySearchById(const std::vector<Product>& products, int id) {
+Product* ProductService::binarySearchById(const vector<Product>& products, int id) {
     int left = 0;
     int right = products.size() - 1;
 
@@ -67,9 +69,6 @@ Product* ProductService::binarySearchById(const std::vector<Product>& products, 
 }
 
 void ProductService::insertDemoProduct() {
-    // Insert products in a way that triggers rotations
-    // For example, 30, 20, 10 (LL rotation) or 10, 20, 30 (RR rotation)
-    // We use unique IDs for demo
     insertProduct(Product(901, "Demo Product A", "Demo", 100000));
     insertProduct(Product(902, "Demo Product B", "Demo", 100000));
     insertProduct(Product(903, "Demo Product C", "Demo", 100000));
@@ -81,14 +80,14 @@ void ProductService::deleteDemoProduct() {
     deleteProduct(903);
 }
 
-std::vector<Product> ProductService::getInorder() {
+vector<Product> ProductService::getInorder() {
     return catalog.inorderTraversal();
 }
 
-std::vector<Product> ProductService::getPreorder() {
+vector<Product> ProductService::getPreorder() {
     return catalog.preorderTraversal();
 }
 
-std::vector<Product> ProductService::getPostorder() {
+vector<Product> ProductService::getPostorder() {
     return catalog.postorderTraversal();
 }

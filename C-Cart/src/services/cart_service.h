@@ -6,10 +6,8 @@
 #include "../structures/promo_list.h"
 #include "../structures/navigation_stack.h"
 
-/**
- * @brief CartService - menghubungkan semua struktur data Orang 2
- * Mengelola interaksi antara Cart, Catalog, Promo, dan Navigation
- */
+// CartService - Menghubungkan berbagai struktur data untuk fitur belanja
+// Mengelola interaksi antara Keranjang, Katalog, Promo, dan Navigasi
 class CartService {
 private:
     CartList cart;
@@ -17,35 +15,35 @@ private:
     PromoList promo;
     NavigationStack navStack;
 
-    void inisialisasiPromo();
-    void inisialisasiCatalog(Product* products, int jumlah);
+    void initializePromo();
+    void initializeCatalog(Product* products, int jumlah);
 
 public:
     CartService();
 
-    // Setup awal — dipanggil setelah data produk dari AVL Tree tersedia
-    void inisialisasi(Product* products, int jumlah);
+    // Setup awal dengan data produk dari AVL Tree
+    void initialize(Product* products, int jumlah);
 
-    // ── LAYAR 1: Katalog ──
-    void tampilkanHalamanKatalog();
-    void nextProduk();
-    void prevProduk();
-    void tambahKeKeranjang(int productId);
+    // Fitur Katalog
+    void displayCatalogPage();
+    void nextProduct();
+    void prevProduct();
+    void addToCart(int productId);
     void nextPromo();
 
-    // ── LAYAR 2: Keranjang ──
-    void tampilkanKeranjang();
-    void hapusDariKeranjang(int productId);
-    double getTotalHarga() const;
-    bool keranjangKosong() const;
+    // Fitur Keranjang
+    void displayCart();
+    void removeFromCart(int productId);
+    double getTotalPrice() const;
+    bool isCartEmpty() const;
 
-    // ── NAVIGASI ──
-    void pindahKeHalaman(std::string namaHalaman);
+    // Navigasi Halaman
+    void navigateToPage(std::string pageName);
     std::string back();
-    bool bisaBack() const;
-    std::string halamanSekarang() const;
+    bool canGoBack() const;
+    std::string currentPage() const;
 
-    // Getter untuk dipakai Orang 3 (Checkout)
+    // Getter untuk akses keranjang
     CartList& getCart();
 };
 

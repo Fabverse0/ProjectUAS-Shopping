@@ -1,6 +1,8 @@
 #include "route_service.h"
 #include <iostream>
 
+using namespace std;
+
 RouteService::RouteService() {
     initializeDefaultGraph();
 }
@@ -13,14 +15,14 @@ void RouteService::initializeDefaultGraph() {
     cityGraph.addEdge("Bekasi", "Bogor");
 }
 
-std::vector<std::string> RouteService::findDeliveryRoute(std::string destination) {
+vector<string> RouteService::findDeliveryRoute(string destination) {
     return cityGraph.bfsShortestRoute(startCity, destination);
 }
 
-std::vector<std::string> RouteService::auditNetwork() {
+vector<string> RouteService::auditNetwork() {
     return cityGraph.dfsTraversal(startCity);
 }
 
-void RouteService::displayGraph() const {
-    cityGraph.displayGraph();
+void RouteService::displayNetwork() const {
+    cityGraph.display();
 }

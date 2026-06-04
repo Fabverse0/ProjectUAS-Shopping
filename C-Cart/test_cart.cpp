@@ -6,7 +6,9 @@
 #include "src/structures/promo_list.h"
 #include "src/structures/navigation_stack.h"
 
-// DATA PRODUK HARDCODED (sementara, nanti dari AVL Tree Orang 1)
+using namespace std;
+
+// DATA PRODUK HARDCODED
 Product daftarProduk[] = {
     Product(1,  "Samsung Galaxy A15",  "Elektronik", 2499000),
     Product(2,  "Earphone JBL T110",   "Elektronik",  299000),
@@ -26,13 +28,13 @@ Product daftarProduk[] = {
 };
 int jumlahProduk = 15;
 
-void garis() { std::cout << std::string(55, '=') << std::endl; }
-void jeda()  { std::cout << "\nTekan Enter untuk lanjut..."; std::cin.get(); std::cout << std::endl; }
+void garis() { cout << string(55, '=') << endl; }
+void jeda()  { cout << "\nTekan Enter untuk lanjut..."; cin.get(); cout << endl; }
 
 // TEST 1 - Circular Linked List
 void testPromoList() {
     garis();
-    std::cout << "TEST 1 - CIRCULAR LINKED LIST (Banner Promo)" << std::endl;
+    cout << "TEST 1 - CIRCULAR LINKED LIST (Banner Promo)" << endl;
     garis();
 
     PromoList promo;
@@ -42,131 +44,131 @@ void testPromoList() {
     promo.tambahPromo("Aksesoris Mulai Rp 79.000!");
     promo.tambahPromo("Gratis Ongkir ke Seluruh Jabodetabek!");
 
-    std::cout << "\nSemua promo yang tersimpan:" << std::endl;
-    promo.tampilkanSemua();
+    cout << "\nSemua promo yang tersimpan:" << endl;
+    promo.displayAll();
 
-    std::cout << "\nRotasi banner (sirkuler - node terakhir balik ke pertama):" << std::endl;
+    cout << "\nRotasi banner (sirkuler - node terakhir balik ke pertama):" << endl;
     for (int i = 1; i <= 7; i++) {
-        std::cout << "  Rotasi " << i << ": ";
-        promo.tampilkanCurrent();
+        cout << "  Rotasi " << i << ": ";
+        promo.displayCurrent();
         promo.nextPromo();
     }
 
-    std::cout << "\n[OK] Circular Linked List OK - node terakhir kembali ke node pertama!" << std::endl;
+    cout << "\n[OK] Circular Linked List OK - node terakhir kembali ke node pertama!" << endl;
     jeda();
 }
 
 // TEST 2 - Double Linked List
 void testCatalogList() {
     garis();
-    std::cout << "TEST 2 - DOUBLE LINKED LIST (Navigasi Katalog)" << std::endl;
+    cout << "TEST 2 - DOUBLE LINKED LIST (Navigasi Katalog)" << endl;
     garis();
 
     CatalogList catalog;
     for (int i = 0; i < jumlahProduk; i++) {
-        catalog.tambahProduk(daftarProduk[i]);
+        catalog.addProduct(daftarProduk[i]);
     }
 
-    std::cout << "\nSemua produk di katalog:" << std::endl;
-    catalog.tampilkanSemua();
+    cout << "\nSemua produk di katalog:" << endl;
+    catalog.displayAll();
 
-    std::cout << "\nTest navigasi NEXT:" << std::endl;
-    std::cout << "Posisi awal:" << std::endl; catalog.tampilkanCurrent();
-    std::cout << "\nTekan NEXT" << std::endl; catalog.next();
-    std::cout << "\nTekan NEXT" << std::endl; catalog.next();
-    std::cout << "\nTekan NEXT" << std::endl; catalog.next();
+    cout << "\nTest navigasi NEXT:" << endl;
+    cout << "Posisi awal:" << endl; catalog.displayCurrent();
+    cout << "\nTekan NEXT" << endl; catalog.next();
+    cout << "\nTekan NEXT" << endl; catalog.next();
+    cout << "\nTekan NEXT" << endl; catalog.next();
 
-    std::cout << "\nTest navigasi PREV:" << std::endl;
-    std::cout << "Tekan PREV" << std::endl; catalog.prev();
-    std::cout << "\nTekan PREV" << std::endl; catalog.prev();
+    cout << "\nTest navigasi PREV:" << endl;
+    cout << "Tekan PREV" << endl; catalog.prev();
+    cout << "\nTekan PREV" << endl; catalog.prev();
 
-    std::cout << "\nTest batas - PREV dari produk pertama:" << std::endl;
-    catalog.resetKeCurrent();
+    cout << "\nTest batas - PREV dari produk pertama:" << endl;
+    catalog.resetToFirst();
     catalog.prev();
 
-    std::cout << "\n[OK] Double Linked List OK - Prev/Next berjalan!" << std::endl;
+    cout << "\n[OK] Double Linked List OK - Prev/Next berjalan!" << endl;
     jeda();
 }
 
 // TEST 3 - Single Linked List
 void testCartList() {
     garis();
-    std::cout << "TEST 3 - SINGLE LINKED LIST (Keranjang Belanja)" << std::endl;
+    cout << "TEST 3 - SINGLE LINKED LIST (Keranjang Belanja)" << endl;
     garis();
 
     CartList cart;
 
-    std::cout << "\nTambah 3 produk ke keranjang:" << std::endl;
-    cart.tambahProduk(daftarProduk[0]);
-    cart.tambahProduk(daftarProduk[5]);
-    cart.tambahProduk(daftarProduk[10]);
+    cout << "\nTambah 3 produk ke keranjang:" << endl;
+    cart.addProduct(daftarProduk[0]);
+    cart.addProduct(daftarProduk[5]);
+    cart.addProduct(daftarProduk[10]);
 
-    std::cout << "\nIsi keranjang:" << std::endl;
-    cart.tampilkan();
+    cout << "\nIsi keranjang:" << endl;
+    cart.display();
 
-    std::cout << "\nTest tambah produk yang sama (qty bertambah):" << std::endl;
-    cart.tambahProduk(daftarProduk[0], 2);
+    cout << "\nTest tambah produk yang sama (qty bertambah):" << endl;
+    cart.addProduct(daftarProduk[0], 2);
 
-    std::cout << "\nKeranjang setelah update qty:" << std::endl;
-    cart.tampilkan();
+    cout << "\nKeranjang setelah update qty:" << endl;
+    cart.display();
 
-    std::cout << "\nHapus Sepatu Nike dari keranjang:" << std::endl;
-    cart.hapusProduk(6);
+    cout << "\nHapus Sepatu Nike dari keranjang:" << endl;
+    cart.removeProduct(6);
 
-    std::cout << "\nKeranjang setelah hapus:" << std::endl;
-    cart.tampilkan();
+    cout << "\nKeranjang setelah hapus:" << endl;
+    cart.display();
 
-    std::cout << "\nTest hapus produk yang tidak ada:" << std::endl;
-    cart.hapusProduk(999);
+    cout << "\nTest hapus produk yang tidak ada:" << endl;
+    cart.removeProduct(999);
 
-    std::cout << "\n[OK] Single Linked List OK - Insert/Delete berjalan!" << std::endl;
+    cout << "\n[OK] Single Linked List OK - Insert/Delete berjalan!" << endl;
     jeda();
 }
 
 // TEST 4 - Stack
 void testNavigationStack() {
     garis();
-    std::cout << "TEST 4 - STACK (Navigasi Halaman)" << std::endl;
+    cout << "TEST 4 - STACK (Navigasi Halaman)" << endl;
     garis();
 
     NavigationStack nav;
 
-    std::cout << "\nPush halaman - user navigasi maju:" << std::endl;
+    cout << "\nPush halaman - user navigasi maju:" << endl;
     nav.push("Katalog");
-    std::cout << "  Push: Katalog" << std::endl;
+    cout << "  Push: Katalog" << endl;
     nav.push("Detail Produk");
-    std::cout << "  Push: Detail Produk" << std::endl;
+    cout << "  Push: Detail Produk" << endl;
     nav.push("Keranjang");
-    std::cout << "  Push: Keranjang" << std::endl;
+    cout << "  Push: Keranjang" << endl;
     nav.push("Checkout");
-    std::cout << "  Push: Checkout" << std::endl;
+    cout << "  Push: Checkout" << endl;
 
-    std::cout << "\nRiwayat navigasi sekarang:" << std::endl;
-    nav.tampilkan();
+    cout << "\nRiwayat navigasi sekarang:" << endl;
+    nav.display();
 
-    std::cout << "\nTekan Back (Pop) berkali-kali:" << std::endl;
-    while (nav.bisaBack()) {
-        std::string kembali = nav.pop();
-        std::cout << "  Back dari: " << kembali
-                  << " | sekarang di: " << nav.peek() << std::endl;
+    cout << "\nTekan Back (Pop) berkali-kali:" << endl;
+    while (nav.canGoBack()) {
+        string kembali = nav.pop();
+        cout << "  Back dari: " << kembali
+             << " | sekarang di: " << nav.peek() << endl;
     }
 
-    std::cout << "\nTest Back di halaman pertama:" << std::endl;
-    if (!nav.bisaBack()) {
-        std::cout << "  Sudah di halaman pertama, tombol Back tidak aktif!" << std::endl;
+    cout << "\nTest Back di halaman pertama:" << endl;
+    if (!nav.canGoBack()) {
+        cout << "  Sudah di halaman pertama, tombol Back tidak aktif!" << endl;
     }
 
-    std::cout << "\n[OK] Stack OK - Push/Pop navigasi berjalan!" << std::endl;
+    cout << "\n[OK] Stack OK - Push/Pop navigasi berjalan!" << endl;
     jeda();
 }
 
 // MAIN
 int main() {
-    std::cout << std::string(55, '=') << std::endl;
-    std::cout << "     C-CART - TEST STRUKTUR DATA ORANG 2" << std::endl;
-    std::cout << "  Cart, Catalog, Promo, Navigation" << std::endl;
-    std::cout << std::string(55, '=') << std::endl;
-    std::cout << "\nAda 4 test yang akan dijalankan." << std::endl;
+    cout << string(55, '=') << endl;
+    cout << "     C-CART - TEST STRUKTUR DATA ORANG 2" << endl;
+    cout << "  Cart, Catalog, Promo, Navigation" << endl;
+    cout << string(55, '=') << endl;
+    cout << "\nAda 4 test yang akan dijalankan." << endl;
     jeda();
 
     testPromoList();
@@ -175,11 +177,11 @@ int main() {
     testNavigationStack();
 
     garis();
-    std::cout << "SEMUA TEST SELESAI!" << std::endl;
-    std::cout << "[OK] Circular Linked List  - Banner Promo" << std::endl;
-    std::cout << "[OK] Double Linked List    - Navigasi Katalog" << std::endl;
-    std::cout << "[OK] Single Linked List    - Keranjang Belanja" << std::endl;
-    std::cout << "[OK] Stack (Linked List)   - Navigasi Halaman" << std::endl;
+    cout << "SEMUA TEST SELESAI!" << endl;
+    cout << "[OK] Circular Linked List  - Banner Promo" << endl;
+    cout << "[OK] Double Linked List    - Navigasi Katalog" << endl;
+    cout << "[OK] Single Linked List    - Keranjang Belanja" << endl;
+    cout << "[OK] Stack (Linked List)   - Navigasi Halaman" << endl;
     garis();
 
     return 0;

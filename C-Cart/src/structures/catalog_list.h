@@ -3,9 +3,7 @@
 
 #include "../models/product.h"
 
-/**
- * @brief Node untuk Double Linked List katalog produk
- */
+// Node untuk Double Linked List katalog produk
 struct CatalogNode {
     Product product;
     CatalogNode* prev;
@@ -14,30 +12,33 @@ struct CatalogNode {
     CatalogNode(Product p) : product(p), prev(nullptr), next(nullptr) {}
 };
 
-/**
- * @brief Double Linked List untuk navigasi katalog produk
- * Tombol Prev/Next untuk browse produk tanpa akses ulang seluruh list
- */
+// Double Linked List untuk navigasi katalog produk
+// Memungkinkan navigasi maju-mundur di katalog
 class CatalogList {
 private:
     CatalogNode* head;
     CatalogNode* tail;
-    CatalogNode* current;   // posisi user sekarang
+    CatalogNode* current;   // Posisi saat ini
     int size;
 
 public:
     CatalogList();
     ~CatalogList();
 
-    // Operasi
-    void tambahProduk(Product p);   // insert di belakang
-    void next();                    // pindah ke produk berikutnya
-    void prev();                    // pindah ke produk sebelumnya
-    void resetKeCurrent();          // kembali ke awal
+    // Menambah produk di akhir list
+    void addProduct(Product p);
+
+    // Navigasi
+    void next();            // Pindah ke produk selanjutnya
+    void prev();            // Pindah ke produk sebelumnya
+    void resetToFirst();    // Kembali ke produk pertama
+
+    // Pencarian
+    Product* findById(int productId);
 
     // Tampilan
-    void tampilkanCurrent() const;  // tampilkan produk sekarang
-    void tampilkanSemua() const;    // tampilkan semua produk
+    void displayCurrent() const;  // Tampilkan produk aktif
+    void displayAll() const;    // Tampilkan semua produk
 
     // Getter
     bool isEmpty() const;

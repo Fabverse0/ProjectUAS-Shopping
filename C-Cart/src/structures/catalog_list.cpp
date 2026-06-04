@@ -2,6 +2,8 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 CatalogList::CatalogList() : head(nullptr), tail(nullptr), current(nullptr), size(0) {}
 
 CatalogList::~CatalogList() {
@@ -13,8 +15,8 @@ CatalogList::~CatalogList() {
     }
 }
 
-// ── TAMBAH PRODUK (insert di belakang) ──────────────────
-void CatalogList::tambahProduk(Product p) {
+// Menambah produk ke akhir list
+void CatalogList::addProduct(Product p) {
     CatalogNode* newNode = new CatalogNode(p);
 
     if (head == nullptr) {
@@ -27,92 +29,102 @@ void CatalogList::tambahProduk(Product p) {
     size++;
 }
 
-// ── NEXT (geser ke kanan) ────────────────────────────────
+// Pindah ke produk selanjutnya
 void CatalogList::next() {
     if (current == nullptr) {
-        std::cout << "Katalog kosong." << std::endl;
+        cout << "Katalog kosong." << endl;
         return;
     }
     if (current->next == nullptr) {
-        std::cout << "Sudah di produk terakhir." << std::endl;
+        cout << "Sudah di produk terakhir." << endl;
         return;
     }
     current = current->next;
-    tampilkanCurrent();
+    displayCurrent();
 }
 
-// ── PREV (geser ke kiri) ─────────────────────────────────
+// Pindah ke produk sebelumnya
 void CatalogList::prev() {
     if (current == nullptr) {
-        std::cout << "Katalog kosong." << std::endl;
+        cout << "Katalog kosong." << endl;
         return;
     }
     if (current->prev == nullptr) {
-        std::cout << "Sudah di produk pertama." << std::endl;
+        cout << "Sudah di produk pertama." << endl;
         return;
     }
     current = current->prev;
-    tampilkanCurrent();
+    displayCurrent();
 }
 
-// ── RESET KE AWAL ───────────────────────────────────────
-void CatalogList::resetKeCurrent() {
+// Kembali ke produk pertama
+void CatalogList::resetToFirst() {
     current = head;
 }
 
-// ── TAMPILKAN PRODUK SEKARANG ────────────────────────────
-void CatalogList::tampilkanCurrent() const {
-    if (current == nullptr) {
-        std::cout << "Katalog kosong." << std::endl;
-        return;
+// Mencari produk berdasarkan ID
+Product* CatalogList::findById(int productId) {
+    CatalogNode* curr = head;
+    while (curr != nullptr) {
+        if (curr->product.id == productId) {
+            return &(curr->product);
+        }
+        curr = curr->next;
     }
-
-    std::cout << std::string(45, '=') << std::endl;
-    std::cout << "  ID       : " << current->product.id << std::endl;
-    std::cout << "  Nama     : " << current->product.nama << std::endl;
-    std::cout << "  Kategori : " << current->product.kategori << std::endl;
-    std::cout << "  Harga    : Rp " << std::fixed << std::setprecision(0)
-              << current->product.harga << std::endl;
-    std::cout << std::string(45, '=') << std::endl;
-
-    // Tampilkan info navigasi
-    std::cout << "  ";
-    if (current->prev) std::cout << "[< PREV] ";
-    else std::cout << "         ";
-    std::cout << "           ";
-    if (current->next) std::cout << "[NEXT >]";
-    std::cout << std::endl;
+    return nullptr;
 }
 
-// ── TAMPILKAN SEMUA ──────────────────────────────────────
-void CatalogList::tampilkanSemua() const {
-    if (head == nullptr) {
-        std::cout << "Katalog kosong." << std::endl;
+// Tampilkan data produk yang sedang dipilih
+void CatalogList::displayCurrent() const {
+    if (current == nullptr) {
+        cout << "Katalog kosong." << endl;
         return;
     }
 
-    std::cout << std::string(55, '-') << std::endl;
-    std::cout << std::left
-              << std::setw(4)  << "ID"
-              << std::setw(25) << "Nama Produk"
-              << std::setw(15) << "Kategori"
-              << "Harga" << std::endl;
-    std::cout << std::string(55, '-') << std::endl;
+    cout << string(45, '=') << endl;
+    cout << "  ID       : " << current->product.id << endl;
+    cout << "  Nama     : " << current->product.nama << endl;
+    cout << "  Kategori : " << current->product.kategori << endl;
+    cout << "  Harga    : Rp " << fixed << setprecision(0)
+         << current->product.harga << endl;
+    cout << string(45, '=') << endl;
+
+    cout << "  ";
+    if (current->prev) cout << "[< PREV] ";
+    else cout << "         ";
+    cout << "           ";
+    if (current->next) cout << "[NEXT >]";
+    cout << endl;
+}
+
+// Tampilkan semua produk dalam katalog
+void CatalogList::displayAll() const {
+    if (head == nullptr) {
+        cout << "Katalog kosong." << endl;
+        return;
+    }
+
+    cout << string(55, '-') << endl;
+    cout << left
+         << setw(4)  << "ID"
+         << setw(25) << "Nama Produk"
+         << setw(15) << "Kategori"
+         << "Harga" << endl;
+    cout << string(55, '-') << endl;
 
     CatalogNode* curr = head;
     while (curr != nullptr) {
-        std::cout << std::left
-                  << std::setw(4)  << curr->product.id
-                  << std::setw(25) << curr->product.nama
-                  << std::setw(15) << curr->product.kategori
-                  << "Rp " << std::fixed << std::setprecision(0)
-                  << curr->product.harga << std::endl;
+        cout << left
+             << setw(4)  << curr->product.id
+             << setw(25) << curr->product.nama
+             << setw(15) << curr->product.kategori
+             << "Rp " << fixed << setprecision(0)
+             << curr->product.harga << endl;
         curr = curr->next;
     }
-    std::cout << std::string(55, '-') << std::endl;
+    cout << string(55, '-') << endl;
 }
 
-// ── GETTER ──────────────────────────────────────────────
 bool CatalogList::isEmpty() const { return head == nullptr; }
 int CatalogList::getSize() const { return size; }
 CatalogNode* CatalogList::getCurrent() const { return current; }

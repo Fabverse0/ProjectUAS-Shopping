@@ -4,9 +4,7 @@
 #include "../models/product.h"
 #include <vector>
 
-/**
- * @brief Node for BST
- */
+// Node untuk BST
 struct BSTNode {
     Product data;
     BSTNode *left;
@@ -15,10 +13,7 @@ struct BSTNode {
     BSTNode(Product p) : data(p), left(nullptr), right(nullptr) {}
 };
 
-/**
- * @brief Binary Search Tree data structure.
- * Used for sorting products by price.
- */
+// Struktur data Binary Search Tree (untuk sorting berdasarkan harga)
 class BST {
 private:
     BSTNode* root;
@@ -31,14 +26,10 @@ public:
     BST();
     ~BST();
 
-    /**
-     * @brief Insert a product into the BST ordered by price
-     */
+    // Menambah produk ke BST (berdasarkan harga)
     void insert(Product product);
 
-    /**
-     * @brief Get all products sorted by price using inorder traversal
-     */
+    // Mendapatkan produk terurut (inorder traversal)
     std::vector<Product> inorderTraversal();
 };
 

@@ -4,9 +4,7 @@
 #include "../structures/order_queue.h"
 #include <string>
 
-/**
- * @brief Service class to handle the checkout process and order queuing.
- */
+// Layanan untuk menangani proses checkout dan antrean pesanan
 class CheckoutService {
 private:
     OrderQueue queue;
@@ -15,30 +13,19 @@ private:
 public:
     CheckoutService();
 
-    /**
-     * @brief Create a new order and add it to the queue
-     */
+    // Membuat pesanan baru dan masuk ke antrean
     void createOrder(std::string namaPemesan, std::string kotaTujuan, double totalHarga);
 
-    /**
-     * @brief Process the front order in the queue
-     * Changes status: Menunggu -> Diproses -> Selesai (then dequeued)
-     */
+    // Memproses pesanan berikutnya dalam antrean
     void processNextOrder();
 
-    /**
-     * @brief Get access to the order queue
-     */
+    // Mendapatkan akses ke antrean
     OrderQueue& getQueue();
 
-    /**
-     * @brief Check if the order queue is empty
-     */
+    // Cek apakah antrean kosong
     bool isQueueEmpty() const;
 
-    /**
-     * @brief Display all current orders in the queue
-     */
+    // Menampilkan semua pesanan aktif
     void displayOrders() const;
 };
 

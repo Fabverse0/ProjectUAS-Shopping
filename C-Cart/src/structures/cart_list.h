@@ -3,9 +3,7 @@
 
 #include "../models/product.h"
 
-/**
- * @brief Node untuk Single Linked List keranjang belanja
- */
+// Node untuk Single Linked List keranjang belanja
 struct CartNode {
     Product product;
     int qty;
@@ -14,10 +12,7 @@ struct CartNode {
     CartNode(Product p, int qty = 1) : product(p), qty(qty), next(nullptr) {}
 };
 
-/**
- * @brief Single Linked List untuk keranjang belanja
- * Insert/delete dinamis saat tambah atau hapus barang
- */
+// Struktur data Single Linked List untuk mengelola keranjang belanja
 class CartList {
 private:
     CartNode* head;
@@ -27,21 +22,21 @@ public:
     CartList();
     ~CartList();
 
-    // Operasi utama
-    void tambahProduk(Product p, int qty = 1);   // insert node
-    void hapusProduk(int productId);              // delete node
-    void updateQty(int productId, int qty);       // update quantity
-    void kosongkan();                             // hapus semua
+    // Operasi keranjang
+    void addProduct(Product p, int qty = 1);
+    void removeProduct(int productId);
+    void updateQty(int productId, int qty);
+    void clear();
 
-    // Tampilan
-    void tampilkan() const;
-    double totalHarga() const;                    // traversal semua node
+    // Tampilan dan perhitungan
+    void display() const;
+    double totalPrice() const;
 
-    // Getter
+    // Getter dan pengecekan
     bool isEmpty() const;
     int getSize() const;
     CartNode* getHead() const;
-    bool produkAda(int productId) const;
+    bool hasProduct(int productId) const;
 };
 
 #endif // CART_LIST_H

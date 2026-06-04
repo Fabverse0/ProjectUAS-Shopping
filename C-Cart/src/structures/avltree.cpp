@@ -1,6 +1,8 @@
 #include "avltree.h"
 #include <algorithm>
 
+using namespace std;
+
 AVLTree::AVLTree() : root(nullptr) {}
 
 AVLTree::~AVLTree() {
@@ -29,15 +31,12 @@ AVLNode* AVLTree::rightRotate(AVLNode* y) {
     AVLNode* x = y->left;
     AVLNode* T2 = x->right;
 
-    // Perform rotation
     x->right = y;
     y->left = T2;
 
-    // Update heights
-    y->height = std::max(height(y->left), height(y->right)) + 1;
-    x->height = std::max(height(x->left), height(x->right)) + 1;
+    y->height = max(height(y->left), height(y->right)) + 1;
+    x->height = max(height(x->left), height(x->right)) + 1;
 
-    // Return new root
     return x;
 }
 
@@ -45,20 +44,16 @@ AVLNode* AVLTree::leftRotate(AVLNode* x) {
     AVLNode* y = x->right;
     AVLNode* T2 = y->left;
 
-    // Perform rotation
     y->left = x;
     x->right = T2;
 
-    // Update heights
-    x->height = std::max(height(x->left), height(x->right)) + 1;
-    y->height = std::max(height(y->left), height(y->right)) + 1;
+    x->height = max(height(x->left), height(x->right)) + 1;
+    y->height = max(height(y->left), height(y->right)) + 1;
 
-    // Return new root
     return y;
 }
 
 AVLNode* AVLTree::insert(AVLNode* node, Product product) {
-    // 1. Perform normal BST insertion
     if (node == nullptr)
         return new AVLNode(product);
 
@@ -66,32 +61,28 @@ AVLNode* AVLTree::insert(AVLNode* node, Product product) {
         node->left = insert(node->left, product);
     else if (product.id > node->data.id)
         node->right = insert(node->right, product);
-    else // Duplicate IDs are not allowed in this implementation
+    else 
         return node;
 
-    // 2. Update height of this ancestor node
-    node->height = 1 + std::max(height(node->left), height(node->right));
+    node->height = 1 + max(height(node->left), height(node->right));
 
-    // 3. Get the balance factor to check if it became unbalanced
     int balance = getBalance(node);
 
-    // If unbalanced, then there are 4 cases
-
-    // Left Left Case (LL)
+    // Kasus LL
     if (balance > 1 && product.id < node->left->data.id)
         return rightRotate(node);
 
-    // Right Right Case (RR)
+    // Kasus RR
     if (balance < -1 && product.id > node->right->data.id)
         return leftRotate(node);
 
-    // Left Right Case (LR)
+    // Kasus LR
     if (balance > 1 && product.id > node->left->data.id) {
         node->left = leftRotate(node->left);
         return rightRotate(node);
     }
 
-    // Right Left Case (RL)
+    // Kasus RL
     if (balance < -1 && product.id < node->right->data.id) {
         node->right = rightRotate(node->right);
         return leftRotate(node);
@@ -112,7 +103,6 @@ AVLNode* AVLTree::minValueNode(AVLNode* node) {
 }
 
 AVLNode* AVLTree::deleteNode(AVLNode* root, int id) {
-    // 1. Perform standard BST delete
     if (root == nullptr)
         return root;
 
@@ -121,55 +111,41 @@ AVLNode* AVLTree::deleteNode(AVLNode* root, int id) {
     else if (id > root->data.id)
         root->right = deleteNode(root->right, id);
     else {
-        // Node with only one child or no child
         if ((root->left == nullptr) || (root->right == nullptr)) {
             AVLNode* temp = root->left ? root->left : root->right;
 
-            // No child case
             if (temp == nullptr) {
                 temp = root;
                 root = nullptr;
-            } else // One child case
-                *root = *temp; // Copy contents of the non-empty child
+            } else
+                *root = *temp;
 
             delete temp;
         } else {
-            // Node with two children: Get inorder successor
             AVLNode* temp = minValueNode(root->right);
-
-            // Copy the inorder successor's data to this node
             root->data = temp->data;
-
-            // Delete the inorder successor
             root->right = deleteNode(root->right, temp->data.id);
         }
     }
 
-    // If the tree had only one node then return
     if (root == nullptr)
         return root;
 
-    // 2. Update height
-    root->height = 1 + std::max(height(root->left), height(root->right));
+    root->height = 1 + max(height(root->left), height(root->right));
 
-    // 3. Get balance factor
     int balance = getBalance(root);
 
-    // Left Left Case
     if (balance > 1 && getBalance(root->left) >= 0)
         return rightRotate(root);
 
-    // Left Right Case
     if (balance > 1 && getBalance(root->left) < 0) {
         root->left = leftRotate(root->left);
         return rightRotate(root);
     }
 
-    // Right Right Case
     if (balance < -1 && getBalance(root->right) <= 0)
         return leftRotate(root);
 
-    // Right Left Case
     if (balance < -1 && getBalance(root->right) > 0) {
         root->right = rightRotate(root->right);
         return leftRotate(root);
@@ -206,7 +182,7 @@ int AVLTree::getBalanceFactor() {
     return getBalance(root);
 }
 
-void AVLTree::inorder(AVLNode* root, std::vector<Product>& products) {
+void AVLTree::inorder(AVLNode* root, vector<Product>& products) {
     if (root) {
         inorder(root->left, products);
         products.push_back(root->data);
@@ -214,13 +190,13 @@ void AVLTree::inorder(AVLNode* root, std::vector<Product>& products) {
     }
 }
 
-std::vector<Product> AVLTree::inorderTraversal() {
-    std::vector<Product> products;
+vector<Product> AVLTree::inorderTraversal() {
+    vector<Product> products;
     inorder(root, products);
     return products;
 }
 
-void AVLTree::preorder(AVLNode* root, std::vector<Product>& products) {
+void AVLTree::preorder(AVLNode* root, vector<Product>& products) {
     if (root) {
         products.push_back(root->data);
         preorder(root->left, products);
@@ -228,13 +204,13 @@ void AVLTree::preorder(AVLNode* root, std::vector<Product>& products) {
     }
 }
 
-std::vector<Product> AVLTree::preorderTraversal() {
-    std::vector<Product> products;
+vector<Product> AVLTree::preorderTraversal() {
+    vector<Product> products;
     preorder(root, products);
     return products;
 }
 
-void AVLTree::postorder(AVLNode* root, std::vector<Product>& products) {
+void AVLTree::postorder(AVLNode* root, vector<Product>& products) {
     if (root) {
         postorder(root->left, products);
         postorder(root->right, products);
@@ -242,8 +218,8 @@ void AVLTree::postorder(AVLNode* root, std::vector<Product>& products) {
     }
 }
 
-std::vector<Product> AVLTree::postorderTraversal() {
-    std::vector<Product> products;
+vector<Product> AVLTree::postorderTraversal() {
+    vector<Product> products;
     postorder(root, products);
     return products;
 }

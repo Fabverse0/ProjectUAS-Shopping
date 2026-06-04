@@ -4,9 +4,7 @@
 #include "../models/product.h"
 #include <vector>
 
-/**
- * @brief Node for AVL Tree
- */
+// Node untuk AVL Tree
 struct AVLNode {
     Product data;
     AVLNode *left;
@@ -16,15 +14,12 @@ struct AVLNode {
     AVLNode(Product p) : data(p), left(nullptr), right(nullptr), height(1) {}
 };
 
-/**
- * @brief AVL Tree data structure for balanced search operations.
- * Stores products ordered by ID.
- */
+// Struktur data AVL Tree untuk penyimpanan produk yang seimbang (berdasarkan ID)
 class AVLTree {
 private:
     AVLNode* root;
 
-    // Helper functions
+    // Fungsi pembantu
     int height(AVLNode* n);
     int getBalance(AVLNode* n);
     AVLNode* rightRotate(AVLNode* y);
@@ -43,45 +38,24 @@ public:
     AVLTree();
     ~AVLTree();
 
-    /**
-     * @brief Insert a product into the tree
-     */
+    // Menambah produk ke tree
     void insert(Product product);
 
-    /**
-     * @brief Delete a product by its ID
-     */
+    // Menghapus produk berdasarkan ID
     void deleteProduct(int id);
 
-    /**
-     * @brief Search for a product by its ID
-     * @return Pointer to the product if found, nullptr otherwise
-     */
+    // Mencari produk berdasarkan ID
     Product* search(int id);
 
-    /**
-     * @brief Get the height of the tree
-     */
+    // Mendapatkan tinggi tree
     int getHeight();
 
-    /**
-     * @brief Get the balance factor of the root node
-     */
+    // Mendapatkan balance factor node root
     int getBalanceFactor();
 
-    /**
-     * @brief Get all products using inorder traversal (sorted by ID)
-     */
+    // Traversal (mengembalikan vector produk)
     std::vector<Product> inorderTraversal();
-
-    /**
-     * @brief Get all products using preorder traversal
-     */
     std::vector<Product> preorderTraversal();
-
-    /**
-     * @brief Get all products using postorder traversal
-     */
     std::vector<Product> postorderTraversal();
 };
 
