@@ -938,12 +938,24 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(listTrackOrders, &QListWidget::currentRowChanged, this, [this](int row){
-        // Hanya tampilkan paket milik pelanggan login ini
-        std::vector<int> myIdx;
-        for (int i = 0; i < (int)databasePelacakan.size(); ++i)
-            if (databasePelacakan[i].namaPelanggan == usernameAktif) myIdx.push_back(i);
-        if (row < 0 || row >= (int)myIdx.size()) { txtTrackDetail->clear(); return; }
-        const ActiveOrder& o = databasePelacakan[myIdx[row]];
+        // Abaikan jika row tidak valid atau merupakan header/spacer (tidak bisa diklik)
+        if (row < 0) { txtTrackDetail->clear(); return; }
+        QListWidgetItem* clickedItem = listTrackOrders->item(row);
+        if (!clickedItem || !(clickedItem->flags() & Qt::ItemIsEnabled)) {
+            txtTrackDetail->clear(); return;
+        }
+
+        // Cari ActiveOrder yang sesuai berdasarkan teks item (cocokkan ID paket)
+        QString itemText = clickedItem->text();
+        const ActiveOrder* foundOrder = nullptr;
+        for (auto& o : databasePelacakan) {
+            if (o.namaPelanggan != usernameAktif) continue;
+            if (itemText.contains(QString::fromStdString(o.idPelanggan))) {
+                foundOrder = &o; break;
+            }
+        }
+        if (!foundOrder) { txtTrackDetail->clear(); return; }
+        const ActiveOrder& o = *foundOrder;
         if (!o.sudahDiUpdateAdmin) {
             txtTrackDetail->setText("⏳ Paket sedang diproses. Menunggu konfirmasi dari Admin...\n\nSilakan klik Refresh setelah beberapa saat.");
             return;
@@ -1615,26 +1627,81 @@ void MainWindow::klikUpdateStatusAdmin() {
 void MainWindow::refreshTrackingPelanggan() {
     listTrackOrders->clear();
     txtTrackDetail->clear();
-    bool ada = false;
+
+    // Pisahkan paket aktif dan selesai
+    std::vector<ActiveOrder*> aktif, selesai;
     for (auto& o : databasePelacakan) {
         if (o.namaPelanggan != usernameAktif) continue;
-        ada = true;
-        QString icon;
-        if (o.statusLogistik.find("Sampai") != std::string::npos)         icon = "[SELESAI]";
-        else if (o.statusLogistik.find("Menunggu") != std::string::npos)   icon = "[DIPROSES]";
-        else                                                                icon = "[DIKIRIM]";
-        listTrackOrders->addItem(QString("%1 %2 | %3 -> %4 | Sisa: %5 Jam")
-                                     .arg(icon)
-                                     .arg(QString::fromStdString(o.idPelanggan))
-                                     .arg(QString::fromStdString(o.kotaAsal))
-                                     .arg(QString::fromStdString(o.kotaTujuan))
-                                     .arg(o.sisaWaktuJam));
+        if (o.statusLogistik.find("Sampai") != std::string::npos)
+            selesai.push_back(&o);
+        else
+            aktif.push_back(&o);
     }
+
+    bool ada = !aktif.empty() || !selesai.empty();
+
+    // ── Bagian PAKET AKTIF ──
+    if (!aktif.empty()) {
+        QListWidgetItem* headerAktif = new QListWidgetItem("─── 🚚 PAKET AKTIF ───────────────────");
+        headerAktif->setFlags(Qt::NoItemFlags);          // tidak bisa diklik
+        headerAktif->setForeground(QColor("#f39c12"));
+        headerAktif->setBackground(QColor("#2c3e50"));
+        QFont fh = headerAktif->font(); fh.setBold(true); headerAktif->setFont(fh);
+        listTrackOrders->addItem(headerAktif);
+
+        for (auto* o : aktif) {
+            QString icon;
+            if (o->statusLogistik.find("Menunggu") != std::string::npos) icon = "[DIPROSES]";
+            else                                                           icon = "[DIKIRIM] ";
+            QListWidgetItem* item = new QListWidgetItem(
+                QString("%1 %2 | %3 → %4 | Sisa: %5 Jam")
+                    .arg(icon)
+                    .arg(QString::fromStdString(o->idPelanggan))
+                    .arg(QString::fromStdString(o->kotaAsal))
+                    .arg(QString::fromStdString(o->kotaTujuan))
+                    .arg(o->sisaWaktuJam));
+            item->setForeground(QColor("#2ecc71"));
+            listTrackOrders->addItem(item);
+        }
+    }
+
+    // ── Bagian PAKET SELESAI ──
+    if (!selesai.empty()) {
+        // Spasi pemisah antar seksi (hanya jika ada paket aktif juga)
+        if (!aktif.empty()) {
+            QListWidgetItem* spacer = new QListWidgetItem("");
+            spacer->setFlags(Qt::NoItemFlags);
+            listTrackOrders->addItem(spacer);
+        }
+
+        QListWidgetItem* headerSelesai = new QListWidgetItem("─── ✅ SUDAH SELESAI ──────────────────");
+        headerSelesai->setFlags(Qt::NoItemFlags);
+        headerSelesai->setForeground(QColor("#95a5a6"));
+        headerSelesai->setBackground(QColor("#2c3e50"));
+        QFont fh2 = headerSelesai->font(); fh2.setBold(true); headerSelesai->setFont(fh2);
+        listTrackOrders->addItem(headerSelesai);
+
+        for (auto* o : selesai) {
+            QListWidgetItem* item = new QListWidgetItem(
+                QString("[SELESAI] %1 | %2 → %3 | Sampai ✅")
+                    .arg(QString::fromStdString(o->idPelanggan))
+                    .arg(QString::fromStdString(o->kotaAsal))
+                    .arg(QString::fromStdString(o->kotaTujuan)));
+            item->setForeground(QColor("#7f8c8d"));
+            listTrackOrders->addItem(item);
+        }
+    }
+
     if (!ada) {
         txtTrackDetail->setText("Belum ada paket aktif untuk akun ini.");
     } else {
-        // Auto-pilih item pertama agar detail langsung tampil
-        listTrackOrders->setCurrentRow(0);
+        // Auto-pilih item pertama yang bisa diklik (paket aktif jika ada, selesai jika tidak)
+        for (int i = 0; i < listTrackOrders->count(); ++i) {
+            if (listTrackOrders->item(i)->flags() & Qt::ItemIsEnabled) {
+                listTrackOrders->setCurrentRow(i);
+                break;
+            }
+        }
     }
 }
 
@@ -1660,6 +1727,13 @@ void MainWindow::klikRefreshTrackingPelanggan() {
 void MainWindow::klikUrutHarga() {
     QDialog *dlg = new QDialog(this);
     dlg->setWindowTitle("Urut Harga — BST In-Order Traversal"); dlg->setMinimumSize(600, 460);
+    dlg->setStyleSheet(
+        "QDialog { background:#1a2533; }"
+        "QLabel { color:#ecf0f1; }"
+        "QRadioButton { color:#ecf0f1; font-weight:bold; }"
+        "QPushButton { background:#2c3e50; color:#ecf0f1; border:1px solid #34495e; padding:6px 14px; border-radius:4px; }"
+        "QPushButton:hover { background:#34495e; }"
+        );
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     QLabel *lblInfo = new QLabel(
@@ -1667,7 +1741,7 @@ void MainWindow::klikUrutHarga() {
         "Insert produk ke BST berdasarkan harga → In-Order menghasilkan urutan ascending otomatis.",
         dlg);
     lblInfo->setWordWrap(true);
-    lblInfo->setStyleSheet("background:#eaf4fb; padding:8px; border-radius:5px; margin-bottom:4px;");
+    lblInfo->setStyleSheet("background:#d0ebfa; color:#1a3a50; padding:8px; border-radius:5px; margin-bottom:4px;");
     lay->addWidget(lblInfo);
 
     QHBoxLayout *radLay = new QHBoxLayout();
@@ -1681,6 +1755,12 @@ void MainWindow::klikUrutHarga() {
     tbl->setColumnCount(4);
     tbl->setHorizontalHeaderLabels({"ID","Nama Produk","Harga","Aksi"});
     tbl->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    tbl->setStyleSheet(
+        "QTableWidget { background:#1e2b38; color:#ecf0f1; gridline-color:#34495e; }"
+        "QTableWidget::item { color:#ecf0f1; padding:4px; }"
+        "QTableWidget::item:selected { background:#2980b9; color:#ffffff; }"
+        "QHeaderView::section { background:#2c3e50; color:#ecf0f1; font-weight:bold; padding:4px; border:1px solid #34495e; }"
+        );
     lay->addWidget(tbl);
 
     // Tombol lihat struktur BST
@@ -1721,9 +1801,15 @@ void MainWindow::klikUrutHarga() {
 
         tbl->setRowCount((int)data.size());
         for (int i = 0; i < (int)data.size(); ++i) {
-            tbl->setItem(i,0,new QTableWidgetItem(QString::number(data[i]->id)));
-            tbl->setItem(i,1,new QTableWidgetItem(QString::fromStdString(data[i]->name)));
-            tbl->setItem(i,2,new QTableWidgetItem("Rp "+QString::number(data[i]->price)));
+            auto mkItem = [](const QString& txt) {
+                QTableWidgetItem *it = new QTableWidgetItem(txt);
+                it->setForeground(QColor("#ecf0f1"));
+                it->setBackground(QColor("#1e2b38"));
+                return it;
+            };
+            tbl->setItem(i,0,mkItem(QString::number(data[i]->id)));
+            tbl->setItem(i,1,mkItem(QString::fromStdString(data[i]->name)));
+            tbl->setItem(i,2,mkItem("Rp "+QString::number(data[i]->price)));
             QPushButton *btn = new QPushButton("➕ Keranjang", tbl);
             btn->setStyleSheet("background:#2ecc71; color:white; max-height:20px; font-size:11px;");
             BSTNode* p = data[i];
