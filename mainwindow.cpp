@@ -1727,6 +1727,13 @@ void MainWindow::klikRefreshTrackingPelanggan() {
 void MainWindow::klikUrutHarga() {
     QDialog *dlg = new QDialog(this);
     dlg->setWindowTitle("Urut Harga — BST In-Order Traversal"); dlg->setMinimumSize(600, 460);
+    dlg->setStyleSheet(
+        "QDialog { background:#1a2533; }"
+        "QLabel { color:#ecf0f1; }"
+        "QRadioButton { color:#ecf0f1; font-weight:bold; }"
+        "QPushButton { background:#2c3e50; color:#ecf0f1; border:1px solid #34495e; padding:6px 14px; border-radius:4px; }"
+        "QPushButton:hover { background:#34495e; }"
+        );
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     QLabel *lblInfo = new QLabel(
@@ -1734,7 +1741,7 @@ void MainWindow::klikUrutHarga() {
         "Insert produk ke BST berdasarkan harga → In-Order menghasilkan urutan ascending otomatis.",
         dlg);
     lblInfo->setWordWrap(true);
-    lblInfo->setStyleSheet("background:#eaf4fb; padding:8px; border-radius:5px; margin-bottom:4px;");
+    lblInfo->setStyleSheet("background:#d0ebfa; color:#1a3a50; padding:8px; border-radius:5px; margin-bottom:4px;");
     lay->addWidget(lblInfo);
 
     QHBoxLayout *radLay = new QHBoxLayout();
@@ -1748,6 +1755,12 @@ void MainWindow::klikUrutHarga() {
     tbl->setColumnCount(4);
     tbl->setHorizontalHeaderLabels({"ID","Nama Produk","Harga","Aksi"});
     tbl->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    tbl->setStyleSheet(
+        "QTableWidget { background:#1e2b38; color:#ecf0f1; gridline-color:#34495e; }"
+        "QTableWidget::item { color:#ecf0f1; padding:4px; }"
+        "QTableWidget::item:selected { background:#2980b9; color:#ffffff; }"
+        "QHeaderView::section { background:#2c3e50; color:#ecf0f1; font-weight:bold; padding:4px; border:1px solid #34495e; }"
+        );
     lay->addWidget(tbl);
 
     // Tombol lihat struktur BST
@@ -1788,9 +1801,15 @@ void MainWindow::klikUrutHarga() {
 
         tbl->setRowCount((int)data.size());
         for (int i = 0; i < (int)data.size(); ++i) {
-            tbl->setItem(i,0,new QTableWidgetItem(QString::number(data[i]->id)));
-            tbl->setItem(i,1,new QTableWidgetItem(QString::fromStdString(data[i]->name)));
-            tbl->setItem(i,2,new QTableWidgetItem("Rp "+QString::number(data[i]->price)));
+            auto mkItem = [](const QString& txt) {
+                QTableWidgetItem *it = new QTableWidgetItem(txt);
+                it->setForeground(QColor("#ecf0f1"));
+                it->setBackground(QColor("#1e2b38"));
+                return it;
+            };
+            tbl->setItem(i,0,mkItem(QString::number(data[i]->id)));
+            tbl->setItem(i,1,mkItem(QString::fromStdString(data[i]->name)));
+            tbl->setItem(i,2,mkItem("Rp "+QString::number(data[i]->price)));
             QPushButton *btn = new QPushButton("➕ Keranjang", tbl);
             btn->setStyleSheet("background:#2ecc71; color:white; max-height:20px; font-size:11px;");
             BSTNode* p = data[i];
