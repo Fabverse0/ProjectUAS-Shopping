@@ -21,6 +21,7 @@
 #include <QSpinBox>
 #include <vector>
 #include <string>
+#include <map>
 #include <algorithm>
 #include <cctype>
 #include <queue>   // FIX: diperlukan untuk runBFS (std::queue)
@@ -485,6 +486,7 @@ private slots:
     void klikTambahKeranjang();
     void klikHapusCart();
     void klikCheckout();
+    void klikAturLayananPerPaket();
     void klikUrutHarga();
     void klikCariId();
     void klikBack();                    // Stack: tombol kembali halaman sebelumnya
@@ -630,7 +632,11 @@ private:
     QPushButton *btnHapusCart;
     QPushButton *btnCheckout;
     QLabel      *lblOpsiKirimTitle;
-    QComboBox   *comboPengiriman;
+    QComboBox   *comboPengiriman;          // kept for single-package fallback
+    QPushButton *btnAturLayanan;           // buka dialog pilih layanan per sub-paket
+    QLabel      *lblRingkasanLayanan;      // ringkasan pilihan yang sudah dipilih
+    // Menyimpan pilihan instan/reguler per gudang asal (key = nama gudang)
+    std::map<std::string, bool> pilihanInstanPerGudang;
 
     // =========================================================
     // PAGE 2 — ANTREAN (ADMIN ONLY)
