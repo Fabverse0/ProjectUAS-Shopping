@@ -236,4 +236,4 @@ CSHOP/
 
 ---
 
-> Proyek ini dibuat sebagai implementasi praktis mata kuliah Struktur Data & Algoritma, mendemonstrasikan bagaimana setiap struktur data memiliki kasus penggunaan yang paling tepat dalam sistem nyata.
+> Proyek ini dibuat sebagai implementasi praktis mata kuliah Struktur Data, mendemonstrasikan bagaimana setiap struktur data memiliki kasus penggunaan yang paling tepat dalam sistem nyata.
