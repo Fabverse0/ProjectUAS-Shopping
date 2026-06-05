@@ -1577,7 +1577,9 @@ void MainWindow::klikUpdateStatusAdmin() {
         o.statusLogistik  = "Paket Telah Sampai Tujuan ✅";
         o.sisaWaktuJam    = 0;
     } else if (lokasiBaru == "Dalam Perjalanan ke Tujuan") {
-        o.lokasiSekarang  = "Dalam Perjalanan";
+        // JANGAN ubah lokasiSekarang di sini — biarkan tetap berisi nama hub
+        // terakhir yang valid agar kalkulasi waktuAntarHub() pada update
+        // berikutnya (misal: hub ke hub) bisa bekerja dengan benar.
         o.statusLogistik  = "Dalam Perjalanan ke " + o.kotaTujuan;
     } else {
         o.lokasiSekarang  = lokasiBaru.toStdString();
