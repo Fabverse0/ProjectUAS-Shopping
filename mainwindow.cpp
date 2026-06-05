@@ -938,12 +938,24 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(listTrackOrders, &QListWidget::currentRowChanged, this, [this](int row){
-        // Hanya tampilkan paket milik pelanggan login ini
-        std::vector<int> myIdx;
-        for (int i = 0; i < (int)databasePelacakan.size(); ++i)
-            if (databasePelacakan[i].namaPelanggan == usernameAktif) myIdx.push_back(i);
-        if (row < 0 || row >= (int)myIdx.size()) { txtTrackDetail->clear(); return; }
-        const ActiveOrder& o = databasePelacakan[myIdx[row]];
+        // Abaikan jika row tidak valid atau merupakan header/spacer (tidak bisa diklik)
+        if (row < 0) { txtTrackDetail->clear(); return; }
+        QListWidgetItem* clickedItem = listTrackOrders->item(row);
+        if (!clickedItem || !(clickedItem->flags() & Qt::ItemIsEnabled)) {
+            txtTrackDetail->clear(); return;
+        }
+
+        // Cari ActiveOrder yang sesuai berdasarkan teks item (cocokkan ID paket)
+        QString itemText = clickedItem->text();
+        const ActiveOrder* foundOrder = nullptr;
+        for (auto& o : databasePelacakan) {
+            if (o.namaPelanggan != usernameAktif) continue;
+            if (itemText.contains(QString::fromStdString(o.idPelanggan))) {
+                foundOrder = &o; break;
+            }
+        }
+        if (!foundOrder) { txtTrackDetail->clear(); return; }
+        const ActiveOrder& o = *foundOrder;
         if (!o.sudahDiUpdateAdmin) {
             txtTrackDetail->setText("⏳ Paket sedang diproses. Menunggu konfirmasi dari Admin...\n\nSilakan klik Refresh setelah beberapa saat.");
             return;
@@ -1615,26 +1627,81 @@ void MainWindow::klikUpdateStatusAdmin() {
 void MainWindow::refreshTrackingPelanggan() {
     listTrackOrders->clear();
     txtTrackDetail->clear();
-    bool ada = false;
+
+    // Pisahkan paket aktif dan selesai
+    std::vector<ActiveOrder*> aktif, selesai;
     for (auto& o : databasePelacakan) {
         if (o.namaPelanggan != usernameAktif) continue;
-        ada = true;
-        QString icon;
-        if (o.statusLogistik.find("Sampai") != std::string::npos)         icon = "[SELESAI]";
-        else if (o.statusLogistik.find("Menunggu") != std::string::npos)   icon = "[DIPROSES]";
-        else                                                                icon = "[DIKIRIM]";
-        listTrackOrders->addItem(QString("%1 %2 | %3 -> %4 | Sisa: %5 Jam")
-                                     .arg(icon)
-                                     .arg(QString::fromStdString(o.idPelanggan))
-                                     .arg(QString::fromStdString(o.kotaAsal))
-                                     .arg(QString::fromStdString(o.kotaTujuan))
-                                     .arg(o.sisaWaktuJam));
+        if (o.statusLogistik.find("Sampai") != std::string::npos)
+            selesai.push_back(&o);
+        else
+            aktif.push_back(&o);
     }
+
+    bool ada = !aktif.empty() || !selesai.empty();
+
+    // ── Bagian PAKET AKTIF ──
+    if (!aktif.empty()) {
+        QListWidgetItem* headerAktif = new QListWidgetItem("─── 🚚 PAKET AKTIF ───────────────────");
+        headerAktif->setFlags(Qt::NoItemFlags);          // tidak bisa diklik
+        headerAktif->setForeground(QColor("#f39c12"));
+        headerAktif->setBackground(QColor("#2c3e50"));
+        QFont fh = headerAktif->font(); fh.setBold(true); headerAktif->setFont(fh);
+        listTrackOrders->addItem(headerAktif);
+
+        for (auto* o : aktif) {
+            QString icon;
+            if (o->statusLogistik.find("Menunggu") != std::string::npos) icon = "[DIPROSES]";
+            else                                                           icon = "[DIKIRIM] ";
+            QListWidgetItem* item = new QListWidgetItem(
+                QString("%1 %2 | %3 → %4 | Sisa: %5 Jam")
+                    .arg(icon)
+                    .arg(QString::fromStdString(o->idPelanggan))
+                    .arg(QString::fromStdString(o->kotaAsal))
+                    .arg(QString::fromStdString(o->kotaTujuan))
+                    .arg(o->sisaWaktuJam));
+            item->setForeground(QColor("#2ecc71"));
+            listTrackOrders->addItem(item);
+        }
+    }
+
+    // ── Bagian PAKET SELESAI ──
+    if (!selesai.empty()) {
+        // Spasi pemisah antar seksi (hanya jika ada paket aktif juga)
+        if (!aktif.empty()) {
+            QListWidgetItem* spacer = new QListWidgetItem("");
+            spacer->setFlags(Qt::NoItemFlags);
+            listTrackOrders->addItem(spacer);
+        }
+
+        QListWidgetItem* headerSelesai = new QListWidgetItem("─── ✅ SUDAH SELESAI ──────────────────");
+        headerSelesai->setFlags(Qt::NoItemFlags);
+        headerSelesai->setForeground(QColor("#95a5a6"));
+        headerSelesai->setBackground(QColor("#2c3e50"));
+        QFont fh2 = headerSelesai->font(); fh2.setBold(true); headerSelesai->setFont(fh2);
+        listTrackOrders->addItem(headerSelesai);
+
+        for (auto* o : selesai) {
+            QListWidgetItem* item = new QListWidgetItem(
+                QString("[SELESAI] %1 | %2 → %3 | Sampai ✅")
+                    .arg(QString::fromStdString(o->idPelanggan))
+                    .arg(QString::fromStdString(o->kotaAsal))
+                    .arg(QString::fromStdString(o->kotaTujuan)));
+            item->setForeground(QColor("#7f8c8d"));
+            listTrackOrders->addItem(item);
+        }
+    }
+
     if (!ada) {
         txtTrackDetail->setText("Belum ada paket aktif untuk akun ini.");
     } else {
-        // Auto-pilih item pertama agar detail langsung tampil
-        listTrackOrders->setCurrentRow(0);
+        // Auto-pilih item pertama yang bisa diklik (paket aktif jika ada, selesai jika tidak)
+        for (int i = 0; i < listTrackOrders->count(); ++i) {
+            if (listTrackOrders->item(i)->flags() & Qt::ItemIsEnabled) {
+                listTrackOrders->setCurrentRow(i);
+                break;
+            }
+        }
     }
 }
 
