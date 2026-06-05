@@ -327,10 +327,19 @@ MainWindow::MainWindow(QWidget *parent)
     comboPengiriman->addItem("📦 Reguler Standard (+Rp 10.000/Sub-Paket)");
     comboPengiriman->addItem("⚡ Instan Kilat (+Rp 25.000/Sub-Paket)");
     comboPengiriman->setMaximumWidth(320);
+    comboPengiriman->setVisible(false); // disembunyikan, hanya dipakai 1 paket
+    btnAturLayanan = new QPushButton("⚙ Atur Layanan Per Paket", pageKeranjang);
+    btnAturLayanan->setStyleSheet("background:#16a085; color:white; font-weight:bold; padding:6px 14px; border-radius:5px;");
     opsiKirimLayout->addWidget(lblOpsiKirimTitle);
     opsiKirimLayout->addWidget(comboPengiriman);
+    opsiKirimLayout->addWidget(btnAturLayanan);
     opsiKirimLayout->addStretch();
     keranjangLayout->addLayout(opsiKirimLayout);
+
+    lblRingkasanLayanan = new QLabel("Belum ada produk di keranjang.", pageKeranjang);
+    lblRingkasanLayanan->setStyleSheet("color:#7f8c8d; font-size:11px; font-style:italic; padding:2px 0;");
+    lblRingkasanLayanan->setWordWrap(true);
+    keranjangLayout->addWidget(lblRingkasanLayanan);
 
     lblHasilBFS = new QLabel("", pageKeranjang);
     lblHasilBFS->setStyleSheet("color:#7f8c8d; font-size:11px; font-style:italic; margin-top:5px;");
@@ -910,6 +919,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(comboWilayahHub, &QComboBox::currentTextChanged, this, [this](const QString&){ refreshTampilanKeranjang(); });
     connect(comboPengiriman, &QComboBox::currentTextChanged, this, [this](const QString&){ refreshTampilanKeranjang(); });
+    connect(btnAturLayanan,  &QPushButton::clicked,          this, &MainWindow::klikAturLayananPerPaket);
 
     connect(listAdminOrders, &QListWidget::currentRowChanged, this, [this](int row){
         if (row < 0 || row >= (int)databasePelacakan.size()) { txtAdminDetail->clear(); return; }
@@ -1150,6 +1160,7 @@ void MainWindow::klikLogout() {
     roleAktif     = UserRole::NONE;
     usernameAktif = "";
     navStack.clear();                 // reset Stack riwayat navigasi
+    pilihanInstanPerGudang.clear();   // reset pilihan layanan per paket
     btnBack->setEnabled(false);
     btnBack->setText("⬅ Back");
     rootStack->setCurrentIndex(0);
@@ -1318,25 +1329,51 @@ void MainWindow::refreshTampilanKeranjang() {
     QString kotaTujuan = comboWilayahHub->currentText().trimmed();
     long totalAwal = keranjangSLL.calculateTotal();
 
-    bool adaDekat = false;
-    int paketDekat = 0, paketJauh = 0;
-    std::map<std::string,bool> unik;
-    for (size_t i = 0; i < semuaAsal.size(); ++i) {
-        QString asal = QString::fromStdString(semuaAsal[i]).trimmed();
-        int jam = hitungWaktuDuaArah(asal, kotaTujuan);
-        if (!unik[semuaAsal[i]]) {
-            unik[semuaAsal[i]] = true;
-            if (jam <= 24) { paketDekat++; adaDekat = true; }
-            else paketJauh++;
+    // Kumpulkan daftar gudang unik beserta jam tempuh
+    std::map<std::string,int> gudangJam;
+    for (const auto& asal : semuaAsal) {
+        if (gudangJam.find(asal) == gudangJam.end()) {
+            int jam = hitungWaktuDuaArah(QString::fromStdString(asal).trimmed(), kotaTujuan);
+            gudangJam[asal] = jam;
         }
     }
 
-    if (!adaDekat) { comboPengiriman->setEnabled(false); lblOpsiKirimTitle->setText("📦 Hanya Kargo Reguler Jauh"); }
-    else           { comboPengiriman->setEnabled(true);  lblOpsiKirimTitle->setText("⚡ Layanan Pengiriman:"); }
+    // Inisialisasi default untuk gudang baru (reguler)
+    // dan bersihkan gudang yang tidak ada lagi di keranjang
+    std::map<std::string,bool> filtered;
+    for (auto& [gudang, jam] : gudangJam) {
+        if (pilihanInstanPerGudang.find(gudang) != pilihanInstanPerGudang.end())
+            filtered[gudang] = pilihanInstanPerGudang[gudang];
+        else
+            filtered[gudang] = false; // default reguler
+    }
+    pilihanInstanPerGudang = filtered;
 
+    bool adaDekat = false;
+    for (auto& [gudang, jam] : gudangJam)
+        if (jam <= 24) { adaDekat = true; break; }
+
+    if (!adaDekat) lblOpsiKirimTitle->setText("📦 Semua Paket: Kargo Jauh");
+    else           lblOpsiKirimTitle->setText("⚡ Layanan Pengiriman:");
+
+    // Hitung total ongkir berdasarkan pilihan per gudang
     long ongkir = 0;
-    ongkir += (comboPengiriman->currentIndex()==1 && adaDekat) ? paketDekat*25000 : paketDekat*10000;
-    ongkir += paketJauh * 40000;
+    QString ringkasan = "";
+    for (auto& [gudang, jam] : gudangJam) {
+        bool instan = (jam <= 24) && pilihanInstanPerGudang[gudang];
+        if (jam > 24) {
+            ongkir += 40000;
+            ringkasan += QString("📦 %1 → KARGO JAUH +Rp40.000 | ").arg(QString::fromStdString(gudang));
+        } else if (instan) {
+            ongkir += 25000;
+            ringkasan += QString("⚡ %1 → INSTAN +Rp25.000 | ").arg(QString::fromStdString(gudang));
+        } else {
+            ongkir += 10000;
+            ringkasan += QString("📦 %1 → REGULER +Rp10.000 | ").arg(QString::fromStdString(gudang));
+        }
+    }
+    if (ringkasan.endsWith(" | ")) ringkasan.chop(3);
+    lblRingkasanLayanan->setText(rawItems.empty() ? "Belum ada produk di keranjang." : ringkasan);
 
     // Hitung diskon real-time
     QString kode = txtKodeDiskon->text().trimmed().toUpper();
@@ -1365,10 +1402,11 @@ void MainWindow::refreshTampilanKeranjang() {
                                  .arg(totalAwal).arg(ongkir).arg(totalAkhir).arg(infoDiskon));
 
     for (size_t i = 0; i < rawItems.size(); ++i) {
-        QString asal = QString::fromStdString(semuaAsal[i]).trimmed();
-        int jam = hitungWaktuDuaArah(asal, kotaTujuan);
+        std::string asal = semuaAsal[i];
+        int jam = gudangJam.count(asal) ? gudangJam[asal] : 99;
+        bool instan = (jam <= 24) && pilihanInstanPerGudang.count(asal) && pilihanInstanPerGudang[asal];
         QString label = (jam>24) ? "[📦 KARGO JAUH +Rp40.000]" :
-                            (comboPengiriman->currentIndex()==1 ? "[⚡ INSTAN +Rp25.000]" : "[📦 REGULER +Rp10.000]");
+                            (instan ? "[⚡ INSTAN +Rp25.000]" : "[📦 REGULER +Rp10.000]");
         listCart->addItem(QString::fromStdString(rawItems[i]) + " | " + label);
     }
     lblHasilBFS->setText(rawItems.empty() ? "Keranjang kosong." : "ℹ️ Pesanan akan di-split per gudang asal saat checkout.");
@@ -1384,11 +1422,132 @@ void MainWindow::klikHapusCart() {
     }
 }
 
+void MainWindow::klikAturLayananPerPaket() {
+    if (keranjangSLL.isEmpty()) {
+        QMessageBox::warning(this, "Keranjang Kosong", "Tambahkan produk ke keranjang terlebih dahulu.");
+        return;
+    }
+
+    QString kotaTujuan = comboWilayahHub->currentText().trimmed();
+    auto semuaAsal = keranjangSLL.getAllOrigins();
+
+    // Kumpulkan gudang unik dan cek apakah bisa instan
+    std::map<std::string,int> gudangJam;
+    for (const auto& asal : semuaAsal) {
+        if (gudangJam.find(asal) == gudangJam.end()) {
+            int jam = hitungWaktuDuaArah(QString::fromStdString(asal).trimmed(), kotaTujuan);
+            gudangJam[asal] = jam;
+        }
+    }
+
+    // Buat dialog pemilihan per sub-paket
+    QDialog *dlg = new QDialog(this);
+    dlg->setWindowTitle("⚙ Pilih Layanan Pengiriman Per Sub-Paket");
+    dlg->setMinimumWidth(520);
+    dlg->setStyleSheet(
+        "QDialog { background:#1a2533; }"
+        "QLabel { color:#ecf0f1; }"
+        "QGroupBox { color:#16a085; font-weight:bold; border:2px solid #16a085; border-radius:6px; margin-top:8px; padding-top:6px; }"
+        "QRadioButton { color:#ecf0f1; font-size:12px; padding:4px; }"
+        "QRadioButton:hover { color:#1abc9c; }"
+        "QPushButton { background:#2c3e50; color:#ecf0f1; border:1px solid #34495e; padding:8px 18px; border-radius:5px; font-weight:bold; }"
+        "QPushButton:hover { background:#34495e; }"
+    );
+    QVBoxLayout *lay = new QVBoxLayout(dlg);
+
+    QLabel *lblJudul = new QLabel(
+        QString("Keranjang Anda memiliki <b>%1 sub-paket</b> dari gudang berbeda.<br>"
+                "Pilih layanan pengiriman untuk masing-masing sub-paket:")
+            .arg((int)gudangJam.size()), dlg);
+    lblJudul->setWordWrap(true);
+    lblJudul->setStyleSheet("color:#ecf0f1; background:#243447; padding:10px; border-radius:5px; margin-bottom:6px;");
+    lay->addWidget(lblJudul);
+
+    // Map gudang → radiobutton instan (agar bisa dibaca saat OK)
+    std::map<std::string, QRadioButton*> radInstanMap;
+    std::map<std::string, QRadioButton*> radRegulerMap;
+
+    for (auto& [gudang, jam] : gudangJam) {
+        QGroupBox *grp = new QGroupBox(
+            QString("📦 Sub-Paket dari: %1  (estimasi %2 jam ke %3)")
+                .arg(QString::fromStdString(gudang))
+                .arg(jam)
+                .arg(kotaTujuan),
+            dlg);
+        QVBoxLayout *grpLay = new QVBoxLayout(grp);
+
+        if (jam > 24) {
+            // Rute jauh: hanya kargo, tidak bisa instan
+            QLabel *lblOnly = new QLabel("📦 Kargo Jauh — hanya tersedia reguler (+Rp 40.000)\nTidak mendukung pengiriman instan.", grp);
+            lblOnly->setStyleSheet("color:#95a5a6; font-style:italic; padding:4px;");
+            grpLay->addWidget(lblOnly);
+        } else {
+            bool currentInstan = pilihanInstanPerGudang.count(gudang) ? pilihanInstanPerGudang[gudang] : false;
+
+            QRadioButton *radR = new QRadioButton("📦 Reguler Standard  (+Rp 10.000)", grp);
+            QRadioButton *radI = new QRadioButton("⚡ Instan Kilat  (+Rp 25.000)", grp);
+            radR->setChecked(!currentInstan);
+            radI->setChecked(currentInstan);
+            grpLay->addWidget(radR);
+            grpLay->addWidget(radI);
+
+            radInstanMap[gudang]  = radI;
+            radRegulerMap[gudang] = radR;
+        }
+        lay->addWidget(grp);
+    }
+
+    // Tombol cepat: Semua Instan / Semua Reguler
+    bool adaYangBisaInstan = false;
+    for (auto& [g, j] : gudangJam) if (j <= 24) { adaYangBisaInstan = true; break; }
+
+    if (adaYangBisaInstan) {
+        QHBoxLayout *quickLay = new QHBoxLayout();
+        QPushButton *btnSemuaInstan   = new QPushButton("⚡ Semua Instan",   dlg);
+        QPushButton *btnSemuaReguler  = new QPushButton("📦 Semua Reguler",  dlg);
+        btnSemuaInstan->setStyleSheet("background:#16a085; color:white; font-weight:bold; padding:6px 14px; border-radius:5px;");
+        btnSemuaReguler->setStyleSheet("background:#2c3e50; color:#ecf0f1; padding:6px 14px; border-radius:5px;");
+        quickLay->addWidget(btnSemuaInstan);
+        quickLay->addWidget(btnSemuaReguler);
+        quickLay->addStretch();
+        lay->addLayout(quickLay);
+
+        connect(btnSemuaInstan, &QPushButton::clicked, dlg, [&radInstanMap](){
+            for (auto& [g, rb] : radInstanMap) if (rb) rb->setChecked(true);
+        });
+        connect(btnSemuaReguler, &QPushButton::clicked, dlg, [&radRegulerMap](){
+            for (auto& [g, rb] : radRegulerMap) if (rb) rb->setChecked(true);
+        });
+    }
+
+    QHBoxLayout *btnLay = new QHBoxLayout();
+    QPushButton *btnOK     = new QPushButton("✅ Simpan Pilihan", dlg);
+    QPushButton *btnBatal  = new QPushButton("Batal", dlg);
+    btnOK->setStyleSheet("background:#2ecc71; color:white; font-weight:bold; padding:8px 20px; border-radius:5px;");
+    btnLay->addStretch();
+    btnLay->addWidget(btnBatal);
+    btnLay->addWidget(btnOK);
+    lay->addLayout(btnLay);
+
+    connect(btnBatal, &QPushButton::clicked, dlg, &QDialog::reject);
+    connect(btnOK,    &QPushButton::clicked, dlg, [&, dlg](){
+        for (auto& [gudang, jam] : gudangJam) {
+            if (jam <= 24 && radInstanMap.count(gudang))
+                pilihanInstanPerGudang[gudang] = radInstanMap[gudang]->isChecked();
+            else
+                pilihanInstanPerGudang[gudang] = false;
+        }
+        dlg->accept();
+    });
+
+    if (dlg->exec() == QDialog::Accepted)
+        refreshTampilanKeranjang();
+}
+
 void MainWindow::klikCheckout() {
     if (keranjangSLL.isEmpty()) { QMessageBox::warning(this, "Gagal", "Keranjang kosong!"); return; }
 
     QString kotaTujuan = comboWilayahHub->currentText().trimmed();
-    int opsi = comboPengiriman->currentIndex();
 
     std::map<std::string, std::vector<size_t>> kelompok;
     auto semuaAsal  = keranjangSLL.getAllOrigins();
@@ -1400,7 +1559,8 @@ void MainWindow::klikCheckout() {
         QString asal = QString::fromStdString(asalStd).trimmed();
         int jam = hitungWaktuDuaArah(asal, kotaTujuan);
 
-        bool instan = (jam<=24 && opsi==1);
+        // Ambil pilihan instan dari pilihanInstanPerGudang (sudah diset via dialog)
+        bool instan = (jam <= 24) && pilihanInstanPerGudang.count(asalStd) && pilihanInstanPerGudang[asalStd];
         long ongkir = (jam>24) ? 40000 : (instan ? 25000 : 10000);
         std::string labelKurir = (jam>24) ? "[📦 KARGO JAUH +Rp40.000]" : (instan ? "[⚡ INSTAN +Rp25.000]" : "[📦 REGULER +Rp10.000]");
 
@@ -1459,6 +1619,7 @@ void MainWindow::klikCheckout() {
     }
 
     keranjangSLL.clearList();
+    pilihanInstanPerGudang.clear();
     txtKodeDiskon->clear();
     refreshTampilanKeranjang();
 
@@ -1727,13 +1888,6 @@ void MainWindow::klikRefreshTrackingPelanggan() {
 void MainWindow::klikUrutHarga() {
     QDialog *dlg = new QDialog(this);
     dlg->setWindowTitle("Urut Harga — BST In-Order Traversal"); dlg->setMinimumSize(600, 460);
-    dlg->setStyleSheet(
-        "QDialog { background:#1a2533; }"
-        "QLabel { color:#ecf0f1; }"
-        "QRadioButton { color:#ecf0f1; font-weight:bold; }"
-        "QPushButton { background:#2c3e50; color:#ecf0f1; border:1px solid #34495e; padding:6px 14px; border-radius:4px; }"
-        "QPushButton:hover { background:#34495e; }"
-        );
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     QLabel *lblInfo = new QLabel(
@@ -1741,7 +1895,7 @@ void MainWindow::klikUrutHarga() {
         "Insert produk ke BST berdasarkan harga → In-Order menghasilkan urutan ascending otomatis.",
         dlg);
     lblInfo->setWordWrap(true);
-    lblInfo->setStyleSheet("background:#d0ebfa; color:#1a3a50; padding:8px; border-radius:5px; margin-bottom:4px;");
+    lblInfo->setStyleSheet("background:#eaf4fb; padding:8px; border-radius:5px; margin-bottom:4px;");
     lay->addWidget(lblInfo);
 
     QHBoxLayout *radLay = new QHBoxLayout();
@@ -1755,12 +1909,6 @@ void MainWindow::klikUrutHarga() {
     tbl->setColumnCount(4);
     tbl->setHorizontalHeaderLabels({"ID","Nama Produk","Harga","Aksi"});
     tbl->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    tbl->setStyleSheet(
-        "QTableWidget { background:#1e2b38; color:#ecf0f1; gridline-color:#34495e; }"
-        "QTableWidget::item { color:#ecf0f1; padding:4px; }"
-        "QTableWidget::item:selected { background:#2980b9; color:#ffffff; }"
-        "QHeaderView::section { background:#2c3e50; color:#ecf0f1; font-weight:bold; padding:4px; border:1px solid #34495e; }"
-        );
     lay->addWidget(tbl);
 
     // Tombol lihat struktur BST
@@ -1801,15 +1949,9 @@ void MainWindow::klikUrutHarga() {
 
         tbl->setRowCount((int)data.size());
         for (int i = 0; i < (int)data.size(); ++i) {
-            auto mkItem = [](const QString& txt) {
-                QTableWidgetItem *it = new QTableWidgetItem(txt);
-                it->setForeground(QColor("#ecf0f1"));
-                it->setBackground(QColor("#1e2b38"));
-                return it;
-            };
-            tbl->setItem(i,0,mkItem(QString::number(data[i]->id)));
-            tbl->setItem(i,1,mkItem(QString::fromStdString(data[i]->name)));
-            tbl->setItem(i,2,mkItem("Rp "+QString::number(data[i]->price)));
+            tbl->setItem(i,0,new QTableWidgetItem(QString::number(data[i]->id)));
+            tbl->setItem(i,1,new QTableWidgetItem(QString::fromStdString(data[i]->name)));
+            tbl->setItem(i,2,new QTableWidgetItem("Rp "+QString::number(data[i]->price)));
             QPushButton *btn = new QPushButton("➕ Keranjang", tbl);
             btn->setStyleSheet("background:#2ecc71; color:white; max-height:20px; font-size:11px;");
             BSTNode* p = data[i];
