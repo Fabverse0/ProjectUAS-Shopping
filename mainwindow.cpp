@@ -1452,7 +1452,7 @@ void MainWindow::klikAturLayananPerPaket() {
         "QRadioButton:hover { color:#1abc9c; }"
         "QPushButton { background:#2c3e50; color:#ecf0f1; border:1px solid #34495e; padding:8px 18px; border-radius:5px; font-weight:bold; }"
         "QPushButton:hover { background:#34495e; }"
-    );
+        );
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     QLabel *lblJudul = new QLabel(
@@ -1888,6 +1888,7 @@ void MainWindow::klikRefreshTrackingPelanggan() {
 void MainWindow::klikUrutHarga() {
     QDialog *dlg = new QDialog(this);
     dlg->setWindowTitle("Urut Harga — BST In-Order Traversal"); dlg->setMinimumSize(600, 460);
+    dlg->setStyleSheet("QDialog { background:#ffffff; } QLabel { color:#2c3e50; } QRadioButton { color:#2c3e50; font-weight:bold; }");
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     QLabel *lblInfo = new QLabel(
@@ -1895,12 +1896,14 @@ void MainWindow::klikUrutHarga() {
         "Insert produk ke BST berdasarkan harga → In-Order menghasilkan urutan ascending otomatis.",
         dlg);
     lblInfo->setWordWrap(true);
-    lblInfo->setStyleSheet("background:#eaf4fb; padding:8px; border-radius:5px; margin-bottom:4px;");
+    lblInfo->setStyleSheet("background:#eaf4fb; color:#2c3e50; padding:8px; border-radius:5px; margin-bottom:4px;");
     lay->addWidget(lblInfo);
 
     QHBoxLayout *radLay = new QHBoxLayout();
     QRadioButton *radAsc  = new QRadioButton("Termurah → Termahal (In-Order)", dlg);
     QRadioButton *radDesc = new QRadioButton("Termahal → Termurah (Reverse In-Order)", dlg);
+    radAsc->setStyleSheet("color:#2c3e50; font-weight:bold;");
+    radDesc->setStyleSheet("color:#2c3e50; font-weight:bold;");
     radAsc->setChecked(true);
     radLay->addWidget(radAsc); radLay->addWidget(radDesc);
     lay->addLayout(radLay);
@@ -1909,6 +1912,8 @@ void MainWindow::klikUrutHarga() {
     tbl->setColumnCount(4);
     tbl->setHorizontalHeaderLabels({"ID","Nama Produk","Harga","Aksi"});
     tbl->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    tbl->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tbl->setSelectionBehavior(QAbstractItemView::SelectRows);
     lay->addWidget(tbl);
 
     // Tombol lihat struktur BST
@@ -2024,6 +2029,7 @@ void MainWindow::klikCariId() {
     QDialog *dlg = new QDialog(this);
     dlg->setWindowTitle("Hasil Pencarian Binary Search");
     dlg->setMinimumSize(580, 380);
+    dlg->setStyleSheet("QDialog { background:#ffffff; } QLabel { color:#2c3e50; }");
     QVBoxLayout *lay = new QVBoxLayout(dlg);
 
     // Panel log proses Binary Search (edukasi)
@@ -2040,6 +2046,8 @@ void MainWindow::klikCariId() {
     tbl->setColumnCount(4);
     tbl->setHorizontalHeaderLabels({"Nama","Kategori","Harga","Aksi"});
     tbl->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    tbl->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tbl->setSelectionBehavior(QAbstractItemView::SelectRows);
     lay->addWidget(tbl);
     tbl->setRowCount((int)hasilBS.size());
     for (int i = 0; i < (int)hasilBS.size(); ++i) {
