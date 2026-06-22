@@ -975,6 +975,13 @@ MainWindow::MainWindow(QWidget *parent)
         comboAdminStatus->blockSignals(true);
         comboAdminStatus->clear();
 
+        bool sudahSampaiSkrg = (o.statusLogistik.find("Sampai") != std::string::npos);
+
+        // Opsi "sedang dalam perjalanan" — tidak mengubah lokasi & tidak mengurangi sisa waktu
+        if (!sudahSampaiSkrg) {
+            comboAdminStatus->addItem("🚚 Sedang Dalam Perjalanan");
+        }
+
         // Hanya tampilkan hub BERIKUTNYA dari posisi sekarang (tidak bisa mundur)
         bool lewatiLokasi = true;
         for (auto& hub : jalurPaket) {
@@ -982,15 +989,17 @@ MainWindow::MainWindow(QWidget *parent)
             if (lewatiLokasi) continue; // lewati hub sebelum lokasi sekarang
             comboAdminStatus->addItem(hub);
         }
-        // Selalu sediakan opsi "Paket Telah Sampai Tujuan" di akhir
-        if (o.statusLogistik.find("Sampai") == std::string::npos) {
+        // Tetap sediakan opsi manual "Paket Telah Sampai Tujuan" di akhir.
+        // Catatan: jika admin langsung memilih hub tujuan akhir di atas, paket akan
+        // otomatis dianggap "Sampai" — opsi manual ini hanya untuk jaga-jaga / override.
+        if (!sudahSampaiSkrg) {
             comboAdminStatus->addItem("✅ Paket Telah Sampai Tujuan");
         }
 
         comboAdminStatus->blockSignals(false);
 
         // Nonaktifkan tombol update jika paket sudah sampai
-        btnAdminUpdate->setEnabled(o.statusLogistik.find("Sampai") == std::string::npos);
+        btnAdminUpdate->setEnabled(!sudahSampaiSkrg);
     });
 
     connect(listTrackOrders, &QListWidget::currentRowChanged, this, [this](int row){
@@ -1783,11 +1792,22 @@ void MainWindow::klikUpdateStatusAdmin() {
     ActiveOrder& o     = databasePelacakan[row];
     QString lokasiLama = QString::fromStdString(o.lokasiSekarang);
     QString lokasiBaru = comboAdminStatus->currentText();
-    bool    sampai     = lokasiBaru.contains("Sampai Tujuan");
+
+    bool dalamPerjalanan = (lokasiBaru == "🚚 Sedang Dalam Perjalanan");
+
+    // Otomatis dianggap "Sampai" jika admin langsung memilih hub tujuan akhir,
+    // tidak perlu lagi pilih opsi "✅ Paket Telah Sampai Tujuan" secara terpisah.
+    // Opsi manual tetap disediakan di combo untuk jaga-jaga / override.
+    bool sampai = !dalamPerjalanan &&
+                  (lokasiBaru.contains("Sampai Tujuan") ||
+                   lokasiBaru == QString::fromStdString(o.kotaTujuan));
 
     // ---- Hitung pengurangan waktu ----
     int pengurangan = 0;
-    if (sampai) {
+    if (dalamPerjalanan) {
+        // Status "sedang dalam perjalanan": lokasi & sisa waktu TIDAK berubah
+        pengurangan = 0;
+    } else if (sampai) {
         // Habiskan semua sisa waktu
         pengurangan = o.sisaWaktuJam;
     } else {
@@ -1804,7 +1824,10 @@ void MainWindow::klikUpdateStatusAdmin() {
     if (o.sisaWaktuJam < 0) o.sisaWaktuJam = 0;
 
     // ---- Update status & lokasi ----
-    if (sampai) {
+    if (dalamPerjalanan) {
+        o.statusLogistik = "Sedang Dalam Perjalanan dari " + o.lokasiSekarang;
+        // lokasiSekarang & sisaWaktuJam tidak berubah
+    } else if (sampai) {
         o.lokasiSekarang = o.kotaTujuan;
         o.statusLogistik = "Paket Telah Sampai Tujuan ✅";
         o.sisaWaktuJam   = 0;
@@ -1824,16 +1847,25 @@ void MainWindow::klikUpdateStatusAdmin() {
     refreshDashboardAdmin();
     listAdminOrders->setCurrentRow(row); // trigger ulang combo refresh
 
-    QString infoWaktu = (pengurangan > 0)
-                            ? QString("Waktu dikurangi : %1 Jam (%2 Hari)\nSisa Waktu      : %3 Jam (%4 Hari)")
-                                  .arg(pengurangan).arg(double(pengurangan)/24.0, 0,'f',1)
-                                  .arg(o.sisaWaktuJam).arg(double(o.sisaWaktuJam)/24.0, 0,'f',1)
-                            : "Waktu tidak berubah (lokasi sama).";
+    QString infoWaktu;
+    if (dalamPerjalanan) {
+        infoWaktu = "Status diperbarui menjadi \"Sedang Dalam Perjalanan\" — sisa waktu tidak berkurang.";
+    } else if (pengurangan > 0) {
+        infoWaktu = QString("Waktu dikurangi : %1 Jam (%2 Hari)\nSisa Waktu      : %3 Jam (%4 Hari)")
+        .arg(pengurangan).arg(double(pengurangan)/24.0, 0,'f',1)
+            .arg(o.sisaWaktuJam).arg(double(o.sisaWaktuJam)/24.0, 0,'f',1);
+    } else {
+        infoWaktu = "Waktu tidak berubah (lokasi sama).";
+    }
+
+    QString lokasiTampil = dalamPerjalanan ? QString::fromStdString(o.lokasiSekarang)
+                           : sampai          ? QString::fromStdString(o.kotaTujuan)
+                                           : lokasiBaru;
 
     QMessageBox::information(this, "✅ Status Diperbarui",
                              QString("Paket   : %1\nLokasi  : %2\n\n%3")
                                  .arg(QString::fromStdString(o.idPelanggan))
-                                 .arg(sampai ? QString::fromStdString(o.kotaTujuan) : lokasiBaru)
+                                 .arg(lokasiTampil)
                                  .arg(infoWaktu));
 }
 
