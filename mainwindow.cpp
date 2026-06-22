@@ -15,9 +15,38 @@
 #include <map>
 
 // ====================================================================
-// DAFTAR KODE DISKON YANG VALID
+// FILE: mainwindow.cpp
+// KETERANGAN: Implementasi class MainWindow - logic aplikasi shopping
+//             Mencakup UI initialization, event handlers, dan business logic
 // ====================================================================
-struct KodeDiskon { QString kode; int persen; QString deskripsi; };
+
+#include "mainwindow.h"           // Header file MainWindow class
+#include "./ui_mainwindow.h"      // Auto-generated UI class dari Qt Designer
+#include "nav_stack.h"            // Stack untuk riwayat navigasi (No.4)
+#include "binary_search.h"        // Binary Search untuk pencarian produk (No.6)
+#include "bst.h"                  // BST untuk sorting harga katalog (No.7)
+#include "avl_tree.h"             // AVL Tree untuk indexed produk by ID (No.8)
+#include "hash_table.h"           // Hash Table untuk O(1) lookup (No.9)
+#include <QInputDialog>           // Dialog untuk input dari user
+#include <QMessageBox>            // Dialog untuk pesan info/warning/error
+#include <QDialog>                // Class dasar untuk custom dialog
+#include <QTableWidget>           // Widget tabel untuk menampilkan data
+#include <QHeaderView>            // Class untuk manage header di tabel
+#include <QRadioButton>           // Widget radio button (pilihan tunggal)
+#include <QDateTime>              // Class untuk handling date & time
+#include <map>                    // Container map (key-value pair)
+
+// ====================================================================
+// STRUCT & HELPER: Kode Diskon Voucher
+// ====================================================================
+// Struktur data untuk menyimpan informasi voucher diskon
+struct KodeDiskon {
+    QString kode;              // Kode voucher (misal: "CCART50")
+    int persen;                // Persentase diskon (0-100)
+    QString deskripsi;         // Deskripsi promo untuk user
+};
+
+// Database static voucher yang valid dalam sistem
 static const std::vector<KodeDiskon> daftarDiskon = {
     { "CCART50",   50, "Diskon 50% semua produk" },
     { "HEMAT20",   20, "Diskon 20% semua produk" },
@@ -25,14 +54,19 @@ static const std::vector<KodeDiskon> daftarDiskon = {
     { "FLASH30",   30, "Flash sale diskon 30%" },
     { "GRATIS",   100, "Gratis 100% (produk + ongkir)" },
     };
+
+// Fungsi helper: cari kode diskon dalam daftar
+// Return: pair<bool, pointer> — bool = ditemukan, pointer = data voucher
 static std::pair<bool,const KodeDiskon*> cariKodeDiskon(const QString& kode) {
     for (auto& d : daftarDiskon)
-        if (d.kode == kode.trimmed().toUpper()) return { true, &d };
-    return { false, nullptr };
+        if (d.kode == kode.trimmed().toUpper()) return { true, &d };  // Ditemukan
+    return { false, nullptr };  // Tidak ditemukan
 }
 
 // ====================================================================
-// FUNGSI HITUNG WAKTU DUA ARAH (bolak-balik simetris)
+// FUNGSI HELPER: Hitung Waktu Pengiriman Dua Arah (Simetris)
+// KETERANGAN: Waktu pengiriman sama untuk rute A→B dan B→A
+//             Untuk simulasi logistik realistis marketplace
 // ====================================================================
 int hitungWaktuDuaArah(const QString& kotaA, const QString& kotaB) {
     QString a = kotaA.trimmed();
@@ -59,57 +93,81 @@ int hitungWaktuDuaArah(const QString& kotaA, const QString& kotaB) {
     // Transit: Bekasi <-> Merauke (via Jakarta + Surabaya) = 24 + 72 + 168 = 264 jam (11 hari)
     if ((a=="Sub-Hub Bekasi"&& b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Sub-Hub Bekasi"))return 264;
 
-    return 72; // fallback default
+    return 72; // fallback default untuk rute tidak dikenali
 }
 
 // ====================================================================
-// HELPER: urutan hub dalam jalur asal→tujuan
+// FUNGSI HELPER: Dapatkan Urutan Hub dalam Jalur Pengiriman
+// KETERANGAN: Menghitung urutan hub yang dilalui dari asal ke tujuan
+//             (misal Jakarta→Surabaya→Merauke)
 // ====================================================================
 static std::vector<QString> getJalurHub(const QString& asal, const QString& tujuan) {
-    // Definisi urutan jaringan: Bekasi - Jakarta - Surabaya - Merauke
+    // Definisi urutan jaringan logistik: Bekasi - Jakarta - Surabaya - Merauke
     const std::vector<QString> rantai = {"Sub-Hub Bekasi","Hub Jakarta","Hub Surabaya","Hub Merauke"};
     int idxA = -1, idxB = -1;
+
+    // Cari index asal dan tujuan dalam rantai hub
     for (int i = 0; i < (int)rantai.size(); ++i) {
         if (rantai[i] == asal)   idxA = i;
         if (rantai[i] == tujuan) idxB = i;
     }
+
     std::vector<QString> jalur;
+    // Jika asal/tujuan tidak ada dalam jaringan, return sebagai fallback
     if (idxA < 0 || idxB < 0) { jalur.push_back(asal); jalur.push_back(tujuan); return jalur; }
+
+    // Tentukan arah: 1 untuk maju (asal→tujuan), -1 untuk mundur
     int step = (idxA <= idxB) ? 1 : -1;
+
+    // Build jalur dari asal ke tujuan (inclusive)
     for (int i = idxA; i != idxB + step; i += step) jalur.push_back(rantai[i]);
     return jalur;
 }
 
 // ====================================================================
-// HELPER: waktu tempuh antara dua hub bertetangga
+// FUNGSI HELPER: Waktu Tempuh Antara Dua Hub Bertetangga
+// KETERANGAN: Hanya untuk hub yang berdekatan langsung dalam jaringan
+//             Jika tidak bertetangga, return 0 (gunakan getJalurHub untuk transit)
 // ====================================================================
 static int waktuAntarHub(const QString& a, const QString& b) {
-    if (a == b) return 0; // sudah di hub ini, tidak perlu waktu tempuh
+    if (a == b) return 0;  // Sudah di hub ini, tidak perlu waktu tempuh
     if ((a=="Sub-Hub Bekasi"&&b=="Hub Jakarta")||(a=="Hub Jakarta"&&b=="Sub-Hub Bekasi")) return 24;
     if ((a=="Hub Jakarta"&&b=="Hub Surabaya")||(a=="Hub Surabaya"&&b=="Hub Jakarta"))     return 72;
     if ((a=="Hub Surabaya"&&b=="Hub Merauke")||(a=="Hub Merauke"&&b=="Hub Surabaya"))     return 168;
-    return 0;
+    return 0;  // Hub tidak bertetangga
 }
 
+
 // ====================================================================
-// KONSTRUKTOR
+// KONSTRUKTOR: Inisialisasi UI dan Business Logic
 // ====================================================================
+// Constructor dipanggil sekali saat MainWindow object dibuat
+// Tanggung jawab:
+// 1. Setup UI dari designer file
+// 2. Create semua widget dinamis (tidak dibuat di designer)
+// 3. Setup layout dan styling
+// 4. Koneksi signal-slot untuk event handling
+// 5. Inisialisasi data struktur (katalog, tree, hash table, dll)
+// 6. Setup timer untuk promo banner rotation
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    : QMainWindow(parent)  // Inherit dari QMainWindow
+    , ui(new Ui::MainWindow)  // Initialize UI object dari auto-generated file
 {
-    ui->setupUi(this);
-    kategoriAktif = "Elektronik";
+    ui->setupUi(this);  // Setup semua widget dari designer ke window
+    kategoriAktif = "Elektronik";  // Default kategori produk ditampilkan adalah Elektronik
 
     // =========================================================
-    // ROOT STACK: index 0 = login,  index 1 = shell utama
+    // ROOT STACK: Switch antara Login Page (index 0) dan Shell Utama (index 1)
     // =========================================================
+    // QStackedWidget memungkinkan multiple pages dalam satu space visual
+    // index 0 = halaman login, index 1 = aplikasi main setelah login
     rootStack = new QStackedWidget(this);
-    setCentralWidget(rootStack);
+    setCentralWidget(rootStack);  // Set rootStack sebagai central widget window
 
     // =========================================================
-    // PAGE LOGIN
+    // PAGE LOGIN — Halaman login awal aplikasi
     // =========================================================
+    // Setup halaman login dengan styling dan layout
     pageLogin = new QWidget();
     QVBoxLayout *loginOuter = new QVBoxLayout(pageLogin);
     loginOuter->setAlignment(Qt::AlignCenter);
@@ -166,7 +224,7 @@ MainWindow::MainWindow(QWidget *parent)
     loginLayout->addWidget(lblLoginInfo);
 
     loginOuter->addWidget(loginCard);
-    rootStack->addWidget(pageLogin);  // index 0
+    rootStack->addWidget(pageLogin);  // index 0 di rootStack
 
     // =========================================================
     // SHELL UTAMA (post-login)
@@ -303,6 +361,7 @@ MainWindow::MainWindow(QWidget *parent)
     keranjangLayout->addWidget(lblCartTitle);
 
     listCart = new QListWidget(pageKeranjang);
+    listCart->setEditTriggers(QAbstractItemView::NoEditTriggers);
     keranjangLayout->addWidget(listCart);
 
     QHBoxLayout *diskonLayout = new QHBoxLayout();
@@ -378,6 +437,7 @@ MainWindow::MainWindow(QWidget *parent)
     lblQueueTitle->setStyleSheet("font-size:15px; font-weight:bold; color:#2c3e50;");
     antreanLayout->addWidget(lblQueueTitle);
     listQueue = new QListWidget(pageAntrean);
+    listQueue->setEditTriggers(QAbstractItemView::NoEditTriggers);
     antreanLayout->addWidget(listQueue);
     txtDetailAntrean = new QTextEdit(pageAntrean);
     txtDetailAntrean->setReadOnly(true);
@@ -470,6 +530,7 @@ MainWindow::MainWindow(QWidget *parent)
     adminLayout->addWidget(lblAdminInfo);
 
     listAdminOrders = new QListWidget(pageAdminDashboard);
+    listAdminOrders->setEditTriggers(QAbstractItemView::NoEditTriggers);
     listAdminOrders->setMaximumHeight(150);
     adminLayout->addWidget(listAdminOrders);
 
@@ -599,6 +660,8 @@ MainWindow::MainWindow(QWidget *parent)
         tblAVL->setColumnCount(5);
         tblAVL->setHorizontalHeaderLabels({"ID","Nama","Kategori","Harga","Asal Hub"});
         tblAVL->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+        tblAVL->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        tblAVL->setSelectionBehavior(QAbstractItemView::SelectRows);
         auto allNodes = avlTree.getAllSortedById();
         tblAVL->setRowCount((int)allNodes.size());
         for (int i = 0; i < (int)allNodes.size(); ++i) {
@@ -649,6 +712,7 @@ MainWindow::MainWindow(QWidget *parent)
     trackLayout->addWidget(lblTrackInfo);
 
     listTrackOrders = new QListWidget(pageTrackPelanggan);
+    listTrackOrders->setEditTriggers(QAbstractItemView::NoEditTriggers);
     listTrackOrders->setMaximumHeight(200);
     trackLayout->addWidget(listTrackOrders);
 
@@ -1047,8 +1111,13 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // =========================================================
-    // DATABASE PRODUK & GRAPH
+    // DATABASE PRODUK & GRAPH INITIALIZATION
+    // Inisialisasi semua data struktur dengan produk sample saat startup
     // =========================================================
+
+    // ─ No.2: KATALOG DLL — Doubly Linked List per kategori
+    // Setiap kategori punya DLL terpisah untuk navigasi prev/next
+    // Struktur: ID → Nama → Kategori → Harga → Hub Asal
     katalogElektronikDLL.insertProduct(101, "Keyboard Mechanical RGB", "Elektronik", 450000, "Hub Jakarta");
     katalogElektronikDLL.insertProduct(102, "Mouse Gaming Wireless",   "Elektronik", 250000, "Hub Surabaya");
     katalogElektronikDLL.insertProduct(103, "Headset Gaming Stereo",   "Elektronik", 350000, "Hub Merauke");
@@ -1061,9 +1130,10 @@ MainWindow::MainWindow(QWidget *parent)
     katalogPerabotanDLL.insertProduct(302, "Lampu Belajar LED Mini", "Perabotan",   45000, "Hub Jakarta");
     katalogPerabotanDLL.insertProduct(303, "Meja Lipat Minimalis",   "Perabotan",  150000, "Hub Merauke");
 
-    // =========================================================
-    // No.7: BST — Urut Harga per Kategori (In-Order Traversal)
-    // =========================================================
+    // ─ No.7: BST — Binary Search Tree untuk Urut Harga
+    // Insert produk berdasarkan harga sebagai key (comparator)
+    // In-Order traversal → terurut ascending | Reverse In-Order → terurut descending
+    // Digunakan di fitur "Urut Harga" untuk sorting real-time tanpa std::sort
     bstElektronik.insert(101, "Keyboard Mechanical RGB", "Elektronik", 450000, "Hub Jakarta");
     bstElektronik.insert(102, "Mouse Gaming Wireless",   "Elektronik", 250000, "Hub Surabaya");
     bstElektronik.insert(103, "Headset Gaming Stereo",   "Elektronik", 350000, "Hub Merauke");
@@ -1076,9 +1146,10 @@ MainWindow::MainWindow(QWidget *parent)
     bstPerabotan.insert(302, "Lampu Belajar LED Mini", "Perabotan",   45000, "Hub Jakarta");
     bstPerabotan.insert(303, "Meja Lipat Minimalis",   "Perabotan",  150000, "Hub Merauke");
 
-    // =========================================================
-    // No.8: AVL Tree — Seluruh Produk di-index by ID
-    // =========================================================
+    // ─ No.8: AVL Tree — Self-Balancing BST untuk O(log N) lookup
+    // Indexing semua 9 produk by ID (key)
+    // Otomatis balance setiap insert untuk menjaga height ≤ log(N)
+    // Digunakan di admin dashboard untuk cari produk by ID dengan O(log N) efficiency
     avlTree.insert(101, "Keyboard Mechanical RGB", "Elektronik", 450000, "Hub Jakarta");
     avlTree.insert(102, "Mouse Gaming Wireless",   "Elektronik", 250000, "Hub Surabaya");
     avlTree.insert(103, "Headset Gaming Stereo",   "Elektronik", 350000, "Hub Merauke");
@@ -1089,9 +1160,10 @@ MainWindow::MainWindow(QWidget *parent)
     avlTree.insert(302, "Lampu Belajar LED Mini",  "Perabotan",   45000, "Hub Jakarta");
     avlTree.insert(303, "Meja Lipat Minimalis",    "Perabotan",  150000, "Hub Merauke");
 
-    // =========================================================
-    // No.6: Binary Search — Index semua produk (by ID & Nama)
-    // =========================================================
+    // ─ No.6: Binary Search Index — Array terurut untuk O(log N) pencarian
+    // Store produk dalam array yang diurutkan berdasarkan ID dan Nama
+    // buildIndex() mengurutkan array — diperlukan sebelum searchById()/searchByNamePrefix()
+    // Digunakan di fitur Cari Produk (customer search bar)
     binarySearchIndex.addProduct(101, "Keyboard Mechanical RGB", "Elektronik", 450000, "Hub Jakarta");
     binarySearchIndex.addProduct(102, "Mouse Gaming Wireless",   "Elektronik", 250000, "Hub Surabaya");
     binarySearchIndex.addProduct(103, "Headset Gaming Stereo",   "Elektronik", 350000, "Hub Merauke");
@@ -1101,13 +1173,15 @@ MainWindow::MainWindow(QWidget *parent)
     binarySearchIndex.addProduct(104, "Kursi Gaming Ergonomis",  "Perabotan", 1200000, "Hub Surabaya");
     binarySearchIndex.addProduct(302, "Lampu Belajar LED Mini",  "Perabotan",   45000, "Hub Jakarta");
     binarySearchIndex.addProduct(303, "Meja Lipat Minimalis",    "Perabotan",  150000, "Hub Merauke");
-    binarySearchIndex.buildIndex(); // bangun index terurut sebelum digunakan
+    binarySearchIndex.buildIndex(); // BUILD INDEX: sort array sebelum pencarian
 
-    // =========================================================
-    // No.9: Hash Table — isi ketiga tabel saat startup
-    // =========================================================
+    // ─ No.9: Hash Table — 3 tabel hash untuk O(1) lookup
+    // 1. Product Hash Table: key=ID produk, lookup produk by ID dalam O(1)
+    // 2. Voucher Hash Table: key=kode voucher, lookup diskon dalam O(1)
+    // 3. Order Hash Table: key=ID paket, lookup status pesanan dalam O(1)
 
-    // 1. Product Hash Table — sama seperti data katalog
+    // --- 1. Product Hash Table ────────────────────────────────────
+    // Indexing 9 produk katalog untuk quick lookup saat admin manage produk
     productHashTable.insert(101, "Keyboard Mechanical RGB", "Elektronik", 450000, "Hub Jakarta");
     productHashTable.insert(102, "Mouse Gaming Wireless",   "Elektronik", 250000, "Hub Surabaya");
     productHashTable.insert(103, "Headset Gaming Stereo",   "Elektronik", 350000, "Hub Merauke");
@@ -1118,41 +1192,63 @@ MainWindow::MainWindow(QWidget *parent)
     productHashTable.insert(302, "Lampu Belajar LED Mini",  "Perabotan",   45000, "Hub Jakarta");
     productHashTable.insert(303, "Meja Lipat Minimalis",    "Perabotan",  150000, "Hub Merauke");
 
-    // 2. Voucher Hash Table — sesuai daftarDiskon
+    // --- 2. Voucher Hash Table ────────────────────────────────────
+    // 5 kode voucher + persentase diskon untuk validasi real-time saat input diskon
+    // Diakses via cariKodeDiskon(kode) — return pair<bool, KodeDiskon*> untuk O(1) lookup
     voucherHashTable.insert("CCART50",   50,  "Diskon 50% semua produk");
     voucherHashTable.insert("HEMAT20",   20,  "Diskon 20% semua produk");
     voucherHashTable.insert("WELCOME10", 10,  "Diskon 10% untuk pelanggan baru");
     voucherHashTable.insert("FLASH30",   30,  "Flash sale diskon 30%");
     voucherHashTable.insert("GRATIS",    100, "Gratis 100% (produk + ongkir)");
 
-    // 3. Order Hash Table — kosong saat startup, diisi otomatis tiap checkout
+    // --- 3. Order Hash Table ────────────────────────────────────
+    // Kosong saat startup, diisi otomatis tiap checkout (klikCheckout)
+    // Sinkronisasi dari databasePelacakan untuk quick lookup by ID paket
 
-    // Waktu realistis seperti marketplace nyata
-    petaLogistik.addRoute("Hub Jakarta",    "Sub-Hub Bekasi",  24);  // 1 hari
+    // ─ No.10: Graph — Adjacency List untuk Jaringan Logistik
+    // Nodes: Hub Jakarta, Sub-Hub Bekasi, Hub Surabaya, Hub Merauke
+    // Edges: route dengan waktu tempuh (hours) — symmetric (bolak-balik sama)
+    // Digunakan untuk BFS (shortest hop path) dan DFS (connectivity check)
+    // Waktu realistis sesuai dengan kenyataan marketplace Indonesia
+    petaLogistik.addRoute("Hub Jakarta",    "Sub-Hub Bekasi",  24);  // 1 hari (adjacent cities)
     petaLogistik.addRoute("Sub-Hub Bekasi", "Hub Jakarta",     24);  // 1 hari
     petaLogistik.addRoute("Hub Jakarta",    "Hub Surabaya",    72);  // 3 hari
     petaLogistik.addRoute("Hub Surabaya",   "Hub Jakarta",     72);  // 3 hari
     petaLogistik.addRoute("Hub Surabaya",   "Hub Merauke",    168);  // 7 hari (kargo Papua)
-    petaLogistik.addRoute("Hub Merauke",    "Hub Surabaya",   168);  // 7 hari
+    petaLogistik.addRoute("Hub Merauke",    "Hub Surabaya",   168);  // 7 hari (kargo maritime/air)
 
+    // Display network info di text area grafis (optional educational view)
     txtGraphNetwork->setText(QString::fromStdString(petaLogistik.getNetworkString()));
 
-    // Mulai di halaman login
-    rootStack->setCurrentIndex(0);
+    // ─ STARTUP SEQUENCE ────────────────────────────────────────────
+    // 1. Mulai di halaman login (rootStack index 0)
+    // 2. Setelah login, pindah ke shell utama (rootStack index 1)
+    // 3. Default ke halaman: Katalog (customer) atau Dashboard Admin (admin)
+    rootStack->setCurrentIndex(0);  // tampilkan login page dulu
     this->setWindowTitle("CSHOP — Sistem Logistik");
-    this->resize(1000, 680);
+    this->resize(1000, 680);  // ukuran window default
 }
 
+// ====================================================================
+// DESTRUCTOR — Cleanup Resource
+// ====================================================================
+// Dipanggil otomatis saat application ditutup atau MainWindow didelete
+// Pembersihan pointer ui yang di-allocate di designer file
 MainWindow::~MainWindow() { delete ui; }
 
 // ====================================================================
-// HELPER: rute visual
+// HELPER: Format Rute Visual untuk Display
 // ====================================================================
+// Fungsi: Konversi vector rute (dari getJalurHub) menjadi string visual
+// Input: asal (hub awal), tujuan (hub akhir)
+// Output: String dengan format "Hub1 ➔ Hub2 ➔ Hub3 ➔ ... ➔ HubN"
+// Contoh: "Hub Jakarta ➔ Hub Surabaya ➔ Hub Merauke"
+// Digunakan untuk tampilan tracking pesanan & admin dashboard
 QString MainWindow::getRuteVisual(const QString& asal, const QString& tujuan) {
-    auto jalur = getJalurHub(asal, tujuan);
+    auto jalur = getJalurHub(asal, tujuan);  // ambil vector rute (BFS path)
     QStringList parts;
-    for (auto& h : jalur) parts << h;
-    return parts.join(" ➔ ");
+    for (auto& h : jalur) parts << h;        // konversi setiap hub ke QString
+    return parts.join(" ➔ ");               // gabung dengan separator visual
 }
 
 // ====================================================================
@@ -2061,8 +2157,16 @@ void MainWindow::klikUrutHarga() {
     QPushButton *btnTutup = new QPushButton("Tutup", dlg);
     connect(btnTutup, &QPushButton::clicked, dlg, &QDialog::accept);
     lay->addWidget(btnTutup);
-    dlg->exec();
+    dlg->exec();  // tampilkan dialog modal
+    delete dlg;   // cleanup setelah dialog ditutup
 }
+
+// ====================================================================
+// KELOLA PRODUK (ADMIN) — CRUD Operations
+// ====================================================================
+// Halaman admin untuk Add/Edit/Delete produk dari katalog
+// Produk di-store di: CatalogDLL, BST (per kategori), AVL Tree, Binary Search, Hash Table
+// Sinkronisasi otomatis ke semua struktur data saat admin ubah
 
 // ====================================================================
 // CARI PRODUK — Binary Search (No.6) + fallback substring
