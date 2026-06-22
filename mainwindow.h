@@ -150,7 +150,7 @@ private:
 
 public:
     CatalogDLL() : head(nullptr), tail(nullptr), current(nullptr) {}  // Constructor inisialisasi semua pointer ke null
-    
+
     ~CatalogDLL() {  // Destructor: membersihkan semua node
         ProductNode* temp = head;
         while (temp != nullptr) {
@@ -175,10 +175,10 @@ public:
 
     // Fungsi mendapatkan node yang sedang aktif
     ProductNode* getCurrentNode() { return current; }
-    
+
     // Fungsi navigasi maju ke produk berikutnya
     void moveNext() { if (current && current->next) current = current->next; }
-    
+
     // Fungsi navigasi mundur ke produk sebelumnya
     void movePrev() { if (current && current->prev) current = current->prev; }
 
@@ -203,13 +203,13 @@ public:
         // Convert keyword ke lowercase untuk case-insensitive search
         std::string lowerKw = kw;
         std::transform(lowerKw.begin(), lowerKw.end(), lowerKw.begin(), ::tolower);
-        
+
         ProductNode* temp = head;
         while (temp != nullptr) {
             // Convert nama produk ke lowercase
             std::string lowerName = temp->name;
             std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-            
+
             // Cek apakah keyword ada dalam nama produk (substring search)
             if (lowerName.find(lowerKw) != std::string::npos) res.push_back(temp);
             temp = temp->next;
@@ -233,10 +233,10 @@ public:
 class CartSLL {
 private:
     ProductNode* head = nullptr;  // Pointer ke node pertama keranjang
-    
+
 public:
     CartSLL() : head(nullptr) {}  // Constructor inisialisasi head ke null
-    
+
     ~CartSLL() { clearList(); }  // Destructor panggil clearList() untuk cleanup
 
     // Fungsi menambah item ke akhir keranjang (insertion di tail)
@@ -255,19 +255,19 @@ public:
     // Fungsi menghapus item pada indeks tertentu
     void deleteNodeAt(int idx) {
         if (!head) return;  // Jika keranjang kosong, return
-        
+
         ProductNode* temp = head;
         if (idx == 0) {  // Jika menghapus node pertama (head)
             head = head->next;
             delete temp;
             return;
         }
-        
+
         // Traverse ke node sebelum target (idx-1)
         for (int i = 0; temp != nullptr && i < idx - 1; i++) temp = temp->next;
-        
+
         if (!temp || !temp->next) return;  // Index out of bounds
-        
+
         ProductNode* next = temp->next->next;  // Simpan pointer ke node setelah target
         delete temp->next;                      // Hapus node target
         temp->next = next;                      // Skip node yang dihapus
@@ -367,19 +367,19 @@ private:
 
 public:
     LogisticQueue() : front(nullptr), rear(nullptr) {}  // Constructor inisialisasi antrean kosong
-    
+
     ~LogisticQueue() { while (!isEmpty()) dequeue(); }  // Destructor hapus semua order
 
     // Fungsi enqueue dengan prioritas: order instan dimasukkan di depan order reguler
     void enqueueOrderPriority(std::string id, long total, std::string detail,
                               bool instant, std::string dest, std::string asal, std::string pemilik) {
         QueueNode* newNode = new QueueNode{id, total, detail, instant, dest, asal, pemilik, nullptr};
-        
+
         if (isEmpty()) {  // Jika antrean kosong, order baru jadi satu-satunya
             front = rear = newNode;
             return;
         }
-        
+
         if (instant) {  // Jika order instan, prioritas tinggi (masuk di depan)
             if (!front->isInstant) {  // Jika order di depan adalah reguler
                 newNode->next = front;
@@ -410,19 +410,19 @@ public:
 
     // Fungsi cek antrean kosong
     bool isEmpty() { return front == nullptr; }
-    
+
     // Fungsi ambil detail nota dari order di depan antrean
     std::string peekFrontDetail()      { return isEmpty() ? "" : front->detailNota; }
-    
+
     // Fungsi ambil tujuan dari order di depan antrean
     std::string peekFrontDestination() { return isEmpty() ? "" : front->kotaTujuan; }
-    
+
     // Fungsi ambil asal dari order di depan antrean
     std::string peekFrontOrigin()      { return isEmpty() ? "Hub Jakarta" : front->kotaAsal; }
-    
+
     // Fungsi ambil nama pelanggan dari order di depan antrean
     std::string peekFrontOwner()       { return isEmpty() ? "" : front->namaPelanggan; }
-    
+
     // Fungsi ambil ID pelanggan dari order di depan antrean
     std::string peekFrontId()          { return isEmpty() ? "" : front->idPelanggan; }
 
@@ -451,7 +451,7 @@ private:
     int getVertexIndex(std::string name) {
         for (size_t i = 0; i < vertices.size(); ++i)
             if (vertices[i] == name) return static_cast<int>(i);  // Vertex sudah ada, return index
-        
+
         // Vertex belum ada, tambahkan vertex baru
         vertices.push_back(name);
         adjList.push_back(std::vector<std::pair<int,int>>());
@@ -493,7 +493,7 @@ public:
             if (vertices[i] == start) startIdx = i;
             if (vertices[i] == end)   endIdx   = i;
         }
-        
+
         // Validasi vertex ada dalam graph
         if (startIdx < 0) return "❌ Vertex awal tidak ditemukan: " + start;
         if (endIdx   < 0) return "❌ Vertex tujuan tidak ditemukan: " + end;
@@ -512,9 +512,9 @@ public:
 
         while (!q.empty()) {
             int curr = q.front(); q.pop();  // Dequeue vertex dari front queue
-            
+
             if (curr == endIdx) { found = true; break; }  // Target ditemukan, stop BFS
-            
+
             // Explore semua neighbor dari curr
             for (auto& edge : adjList[curr]) {
                 if (!visited[edge.first]) {  // Jika neighbor belum dikunjungi
@@ -562,7 +562,7 @@ public:
         int startIdx = -1;
         for (int i = 0; i < (int)vertices.size(); ++i)
             if (vertices[i] == start) { startIdx = i; break; }
-        
+
         if (startIdx < 0) return "❌ Vertex awal tidak ditemukan: " + start;
 
         // Inisialisasi array untuk tracking visited dan order kunjungan
@@ -573,12 +573,12 @@ public:
         s.push(startIdx);  // Push vertex start ke stack
         while (!s.empty()) {
             int curr = s.top(); s.pop();  // Pop vertex dari top stack
-            
+
             if (visited[curr]) continue;  // Skip jika sudah dikunjungi
-            
+
             visited[curr] = true;
             order.push_back(vertices[curr]);  // Record vertex dalam order kunjungan
-            
+
             // Push tetangga ke stack (urutan terbalik agar left-to-right processing)
             for (int i = (int)adjList[curr].size() - 1; i >= 0; --i)
                 if (!visited[adjList[curr][i].first])
@@ -596,7 +596,7 @@ public:
         std::string unreachable;
         for (int i = 0; i < (int)vertices.size(); ++i)
             if (!visited[i]) unreachable += vertices[i] + " ";
-        
+
         result += unreachable.empty()
                       ? "\n✅ Semua hub dalam jaringan dapat dijangkau dari " + start
                       : "\n⚠️ Hub tidak terjangkau: " + unreachable;
@@ -882,17 +882,17 @@ private:
     QLineEdit    *txtHashProdukId;      // Input field product ID untuk lookup
     QPushButton  *btnHashCariProduk;    // Tombol cari product by ID di hash table
     QTextEdit    *txtHashProdukResult;  // Text editor menampilkan hasil lookup product
-    
+
     // Tab 2: Voucher Lookup
     QLineEdit    *txtHashVoucherKode;   // Input field kode voucher untuk lookup
     QPushButton  *btnHashCariVoucher;   // Tombol cari voucher by code di hash table
     QTextEdit    *txtHashVoucherResult; // Text editor menampilkan hasil lookup voucher
-    
+
     // Tab 3: Order Lookup
     QLineEdit    *txtHashOrderId;       // Input field order ID untuk lookup
     QPushButton  *btnHashCariOrder;     // Tombol cari order by ID di hash table
     QTextEdit    *txtHashOrderResult;   // Text editor menampilkan hasil lookup order
-    
+
     // Stats panel
     QTextEdit    *txtHashStats;         // Text editor menampilkan statistik hash table
 
