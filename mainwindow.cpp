@@ -37,14 +37,29 @@ static std::pair<bool,const KodeDiskon*> cariKodeDiskon(const QString& kode) {
 int hitungWaktuDuaArah(const QString& kotaA, const QString& kotaB) {
     QString a = kotaA.trimmed();
     QString b = kotaB.trimmed();
-    if (a == b) return 1;
-    if ((a=="Hub Jakarta"   && b=="Sub-Hub Bekasi") || (a=="Sub-Hub Bekasi" && b=="Hub Jakarta"))   return 2;
-    if ((a=="Hub Jakarta"   && b=="Hub Surabaya")   || (a=="Hub Surabaya"   && b=="Hub Jakarta"))   return 15;
-    if ((a=="Hub Surabaya"  && b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Hub Surabaya"))  return 72;
-    if ((a=="Hub Jakarta"   && b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Hub Jakarta"))   return 87;
-    if ((a=="Sub-Hub Bekasi"&& b=="Hub Surabaya")   || (a=="Hub Surabaya"   && b=="Sub-Hub Bekasi"))return 17;
-    if ((a=="Sub-Hub Bekasi"&& b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Sub-Hub Bekasi"))return 89;
-    return 24;
+
+    // Sama hub = 12 jam (proses & packing di gudang — seperti marketplace nyata)
+    if (a == b) return 12;
+
+    // Jakarta <-> Bekasi : 1 hari (24 jam) — kota tetangga, ada proses sortir
+    if ((a=="Hub Jakarta"   && b=="Sub-Hub Bekasi") || (a=="Sub-Hub Bekasi" && b=="Hub Jakarta"))   return 24;
+
+    // Jakarta <-> Surabaya : 3 hari (72 jam) — antar kota besar Jawa
+    if ((a=="Hub Jakarta"   && b=="Hub Surabaya")   || (a=="Hub Surabaya"   && b=="Hub Jakarta"))   return 72;
+
+    // Surabaya <-> Merauke : 7 hari (168 jam) — kargo laut/udara ke Papua
+    if ((a=="Hub Surabaya"  && b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Hub Surabaya"))  return 168;
+
+    // Transit: Jakarta <-> Merauke (via Surabaya) = 72 + 168 = 240 jam (10 hari)
+    if ((a=="Hub Jakarta"   && b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Hub Jakarta"))   return 240;
+
+    // Transit: Bekasi <-> Surabaya (via Jakarta) = 24 + 72 = 96 jam (4 hari)
+    if ((a=="Sub-Hub Bekasi"&& b=="Hub Surabaya")   || (a=="Hub Surabaya"   && b=="Sub-Hub Bekasi"))return 96;
+
+    // Transit: Bekasi <-> Merauke (via Jakarta + Surabaya) = 24 + 72 + 168 = 264 jam (11 hari)
+    if ((a=="Sub-Hub Bekasi"&& b=="Hub Merauke")    || (a=="Hub Merauke"    && b=="Sub-Hub Bekasi"))return 264;
+
+    return 72; // fallback default
 }
 
 // ====================================================================
@@ -69,9 +84,10 @@ static std::vector<QString> getJalurHub(const QString& asal, const QString& tuju
 // HELPER: waktu tempuh antara dua hub bertetangga
 // ====================================================================
 static int waktuAntarHub(const QString& a, const QString& b) {
-    if ((a=="Sub-Hub Bekasi"&&b=="Hub Jakarta")||(a=="Hub Jakarta"&&b=="Sub-Hub Bekasi")) return 2;
-    if ((a=="Hub Jakarta"&&b=="Hub Surabaya")||(a=="Hub Surabaya"&&b=="Hub Jakarta"))     return 15;
-    if ((a=="Hub Surabaya"&&b=="Hub Merauke")||(a=="Hub Merauke"&&b=="Hub Surabaya"))     return 72;
+    if (a == b) return 0; // sudah di hub ini, tidak perlu waktu tempuh
+    if ((a=="Sub-Hub Bekasi"&&b=="Hub Jakarta")||(a=="Hub Jakarta"&&b=="Sub-Hub Bekasi")) return 24;
+    if ((a=="Hub Jakarta"&&b=="Hub Surabaya")||(a=="Hub Surabaya"&&b=="Hub Jakarta"))     return 72;
+    if ((a=="Hub Surabaya"&&b=="Hub Merauke")||(a=="Hub Merauke"&&b=="Hub Surabaya"))     return 168;
     return 0;
 }
 
@@ -443,10 +459,13 @@ MainWindow::MainWindow(QWidget *parent)
     adminLayout->addWidget(lblAdminTitle);
 
     QLabel *lblAdminInfo = new QLabel(
-        "ℹ️  Pilih paket → isi lokasi terkini → klik Update. "
-        "Waktu akan berkurang sesuai jarak antar-hub yang dilalui.",
+        "ℹ️  Pilih paket dari daftar → dropdown otomatis menampilkan HANYA hub berikutnya di rute paket tersebut "
+        "(misal: Jakarta→Surabaya→Merauke, admin tidak bisa pilih Bekasi). "
+        "Waktu berkurang sesuai jarak nyata antar-hub.",
         pageAdminDashboard);
-    lblAdminInfo->setStyleSheet("color:#7f8c8d; font-size:12px; padding:4px 0;");
+    lblAdminInfo->setStyleSheet(
+        "color:#7f8c8d; font-size:12px; padding:6px 8px; "
+        "background:#f0f3f4; border-radius:4px; border-left:3px solid #8e44ad;");
     lblAdminInfo->setWordWrap(true);
     adminLayout->addWidget(lblAdminInfo);
 
@@ -460,18 +479,15 @@ MainWindow::MainWindow(QWidget *parent)
     adminLayout->addWidget(txtAdminDetail);
 
     QHBoxLayout *updateLayout = new QHBoxLayout();
-    QLabel *lblStatus = new QLabel("Lokasi Terkini Paket:", pageAdminDashboard);
+    QLabel *lblStatus = new QLabel("Hub Tujuan Berikutnya:", pageAdminDashboard);
     lblStatus->setStyleSheet("font-weight:bold;");
     comboAdminStatus = new QComboBox(pageAdminDashboard);
-    comboAdminStatus->addItem("Hub Jakarta");
-    comboAdminStatus->addItem("Sub-Hub Bekasi");
-    comboAdminStatus->addItem("Hub Surabaya");
-    comboAdminStatus->addItem("Hub Merauke");
-    comboAdminStatus->addItem("Dalam Perjalanan ke Tujuan");
-    comboAdminStatus->addItem("Paket Telah Sampai Tujuan");
-    comboAdminStatus->setMaximumWidth(260);
-    btnAdminUpdate = new QPushButton("✅ Update Status & Kurangi Waktu", pageAdminDashboard);
+    comboAdminStatus->setPlaceholderText("← Pilih paket dulu");
+    comboAdminStatus->setMinimumWidth(280);
+    // Opsi diisi dinamis saat admin memilih paket dari list (hanya hub di rute paket tsb)
+    btnAdminUpdate = new QPushButton("✅ Update Lokasi & Kurangi Waktu Tempuh", pageAdminDashboard);
     btnAdminUpdate->setStyleSheet("background:#8e44ad; color:white; font-weight:bold; min-height:30px; padding:0 12px;");
+    btnAdminUpdate->setEnabled(false); // aktif setelah paket dipilih
     updateLayout->addWidget(lblStatus);
     updateLayout->addWidget(comboAdminStatus);
     updateLayout->addWidget(btnAdminUpdate);
@@ -924,16 +940,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(listAdminOrders, &QListWidget::currentRowChanged, this, [this](int row){
         if (row < 0 || row >= (int)databasePelacakan.size()) { txtAdminDetail->clear(); return; }
         const ActiveOrder& o = databasePelacakan[row];
+
+        // ---- Isi detail teks ----
         QString detail = QString(
-                             "RESI     : %1\n"
-                             "Pelanggan: %2\n"
-                             "Asal     : %3\n"
-                             "Tujuan   : %4\n"
-                             "Rute     : %5\n"
-                             "Lokasi   : %6\n"
-                             "Sisa Waktu: %7 Jam (%8 Hari)\n"
-                             "Status   : %9\n"
-                             "Update Terakhir: %10"
+                             "RESI        : %1\n"
+                             "Pelanggan   : %2\n"
+                             "Asal        : %3\n"
+                             "Tujuan      : %4\n"
+                             "Rute        : %5\n"
+                             "Lokasi Kini : %6\n"
+                             "Sisa Waktu  : %7 Jam (%8 Hari)\n"
+                             "Status      : %9\n"
+                             "Tgl Update  : %10"
                              ).arg(QString::fromStdString(o.idPelanggan))
                              .arg(QString::fromStdString(o.namaPelanggan))
                              .arg(QString::fromStdString(o.kotaAsal))
@@ -945,6 +963,34 @@ MainWindow::MainWindow(QWidget *parent)
                              .arg(QString::fromStdString(o.statusLogistik))
                              .arg(QString::fromStdString(o.lastAdminUpdate));
         txtAdminDetail->setText(detail);
+
+        // ---- [FIX] Isi comboAdminStatus HANYA dengan hub yang ada di rute paket ini ----
+        // Ambil jalur hub dari asal ke tujuan (misal Jakarta→Surabaya→Merauke)
+        auto jalurPaket = getJalurHub(
+            QString::fromStdString(o.kotaAsal),
+            QString::fromStdString(o.kotaTujuan)
+            );
+        QString lokasiKini = QString::fromStdString(o.lokasiSekarang);
+
+        comboAdminStatus->blockSignals(true);
+        comboAdminStatus->clear();
+
+        // Hanya tampilkan hub BERIKUTNYA dari posisi sekarang (tidak bisa mundur)
+        bool lewatiLokasi = true;
+        for (auto& hub : jalurPaket) {
+            if (hub == lokasiKini) { lewatiLokasi = false; continue; }
+            if (lewatiLokasi) continue; // lewati hub sebelum lokasi sekarang
+            comboAdminStatus->addItem(hub);
+        }
+        // Selalu sediakan opsi "Paket Telah Sampai Tujuan" di akhir
+        if (o.statusLogistik.find("Sampai") == std::string::npos) {
+            comboAdminStatus->addItem("✅ Paket Telah Sampai Tujuan");
+        }
+
+        comboAdminStatus->blockSignals(false);
+
+        // Nonaktifkan tombol update jika paket sudah sampai
+        btnAdminUpdate->setEnabled(o.statusLogistik.find("Sampai") == std::string::npos);
     });
 
     connect(listTrackOrders, &QListWidget::currentRowChanged, this, [this](int row){
@@ -1072,12 +1118,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 3. Order Hash Table — kosong saat startup, diisi otomatis tiap checkout
 
-    petaLogistik.addRoute("Hub Jakarta",    "Sub-Hub Bekasi", 2);
-    petaLogistik.addRoute("Sub-Hub Bekasi", "Hub Jakarta",    2);
-    petaLogistik.addRoute("Hub Jakarta",    "Hub Surabaya",  15);
-    petaLogistik.addRoute("Hub Surabaya",   "Hub Jakarta",   15);
-    petaLogistik.addRoute("Hub Surabaya",   "Hub Merauke",   72);
-    petaLogistik.addRoute("Hub Merauke",    "Hub Surabaya",  72);
+    // Waktu realistis seperti marketplace nyata
+    petaLogistik.addRoute("Hub Jakarta",    "Sub-Hub Bekasi",  24);  // 1 hari
+    petaLogistik.addRoute("Sub-Hub Bekasi", "Hub Jakarta",     24);  // 1 hari
+    petaLogistik.addRoute("Hub Jakarta",    "Hub Surabaya",    72);  // 3 hari
+    petaLogistik.addRoute("Hub Surabaya",   "Hub Jakarta",     72);  // 3 hari
+    petaLogistik.addRoute("Hub Surabaya",   "Hub Merauke",    168);  // 7 hari (kargo Papua)
+    petaLogistik.addRoute("Hub Merauke",    "Hub Surabaya",   168);  // 7 hari
 
     txtGraphNetwork->setText(QString::fromStdString(petaLogistik.getNetworkString()));
 
@@ -1701,17 +1748,24 @@ void MainWindow::klikProsesOrderAdmin() {
 // ====================================================================
 void MainWindow::refreshDashboardAdmin() {
     listAdminOrders->clear();
+    comboAdminStatus->clear();
+    btnAdminUpdate->setEnabled(false);
+    txtAdminDetail->clear();
+
     for (auto& o : databasePelacakan) {
-        QString item = QString("[%1] %2 | %3 → %4 | Sisa: %5 Jam | Lokasi: %6")
+        bool sudahSampai = (o.statusLogistik.find("Sampai") != std::string::npos);
+        QString icon = sudahSampai ? "✅" : "🚚";
+        QString item = QString("%1 [%2] %3 | %4 → %5 | Sisa: %6 Jam (%7 Hari) | Lokasi: %8")
+                           .arg(icon)
                            .arg(QString::fromStdString(o.statusLogistik))
                            .arg(QString::fromStdString(o.idPelanggan))
                            .arg(QString::fromStdString(o.kotaAsal))
                            .arg(QString::fromStdString(o.kotaTujuan))
                            .arg(o.sisaWaktuJam)
+                           .arg(double(o.sisaWaktuJam)/24.0, 0, 'f', 1)
                            .arg(QString::fromStdString(o.lokasiSekarang));
         listAdminOrders->addItem(item);
     }
-    txtAdminDetail->clear();
 }
 
 void MainWindow::klikUpdateStatusAdmin() {
@@ -1721,46 +1775,46 @@ void MainWindow::klikUpdateStatusAdmin() {
         QMessageBox::warning(this, "Pilih Paket", "Pilih paket dari daftar terlebih dahulu!");
         return;
     }
+    if (comboAdminStatus->count() == 0) {
+        QMessageBox::information(this, "Tidak Ada Opsi", "Tidak ada hub berikutnya yang tersedia untuk paket ini.");
+        return;
+    }
 
-    ActiveOrder& o        = databasePelacakan[row];
-    QString lokasiLama    = QString::fromStdString(o.lokasiSekarang);
-    QString lokasiBaru    = comboAdminStatus->currentText();
-    QString kotaTujuan    = QString::fromStdString(o.kotaTujuan);
+    ActiveOrder& o     = databasePelacakan[row];
+    QString lokasiLama = QString::fromStdString(o.lokasiSekarang);
+    QString lokasiBaru = comboAdminStatus->currentText();
+    bool    sampai     = lokasiBaru.contains("Sampai Tujuan");
 
-    // Hitung pengurangan waktu: selisih jam antar hub bertetangga
+    // ---- Hitung pengurangan waktu ----
     int pengurangan = 0;
-    if (lokasiBaru != "Dalam Perjalanan ke Tujuan" && lokasiBaru != "Paket Telah Sampai Tujuan") {
-        // Kurangi waktu tempuh dari lokasiLama ke lokasiBaru
+    if (sampai) {
+        // Habiskan semua sisa waktu
+        pengurangan = o.sisaWaktuJam;
+    } else {
+        // Kurangi waktu tempuh antar hub bertetangga di jalur ini
         pengurangan = waktuAntarHub(lokasiLama, lokasiBaru);
         if (pengurangan == 0 && lokasiLama != lokasiBaru) {
-            // Mungkin tidak bertetangga langsung, hitung via jalur
             auto jalur = getJalurHub(lokasiLama, lokasiBaru);
             for (int i = 0; i+1 < (int)jalur.size(); ++i)
                 pengurangan += waktuAntarHub(jalur[i], jalur[i+1]);
         }
-    } else if (lokasiBaru == "Paket Telah Sampai Tujuan") {
-        pengurangan = o.sisaWaktuJam; // habiskan semua sisa waktu
     }
 
     o.sisaWaktuJam -= pengurangan;
     if (o.sisaWaktuJam < 0) o.sisaWaktuJam = 0;
 
-    if (lokasiBaru == "Paket Telah Sampai Tujuan") {
-        o.lokasiSekarang  = o.kotaTujuan;
-        o.statusLogistik  = "Paket Telah Sampai Tujuan ✅";
-        o.sisaWaktuJam    = 0;
-    } else if (lokasiBaru == "Dalam Perjalanan ke Tujuan") {
-        // JANGAN ubah lokasiSekarang di sini — biarkan tetap berisi nama hub
-        // terakhir yang valid agar kalkulasi waktuAntarHub() pada update
-        // berikutnya (misal: hub ke hub) bisa bekerja dengan benar.
-        o.statusLogistik  = "Dalam Perjalanan ke " + o.kotaTujuan;
+    // ---- Update status & lokasi ----
+    if (sampai) {
+        o.lokasiSekarang = o.kotaTujuan;
+        o.statusLogistik = "Paket Telah Sampai Tujuan ✅";
+        o.sisaWaktuJam   = 0;
     } else {
-        o.lokasiSekarang  = lokasiBaru.toStdString();
-        o.statusLogistik  = "Tiba di " + lokasiBaru.toStdString();
+        o.lokasiSekarang = lokasiBaru.toStdString();
+        o.statusLogistik = "Tiba di " + lokasiBaru.toStdString();
     }
 
     o.lastAdminUpdate    = QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss").toStdString();
-    o.sudahDiUpdateAdmin = true;  // sekarang pelanggan bisa melihat
+    o.sudahDiUpdateAdmin = true;
 
     // Sinkron ke Order Hash Table
     orderHashTable.upsert(o.idPelanggan, o.namaPelanggan, o.kotaAsal, o.kotaTujuan,
@@ -1768,18 +1822,19 @@ void MainWindow::klikUpdateStatusAdmin() {
                           o.sisaWaktuJam, o.isInstant, o.lastAdminUpdate);
 
     refreshDashboardAdmin();
-    // Pilih kembali row yang sama agar detail terupdate
-    listAdminOrders->setCurrentRow(row);
+    listAdminOrders->setCurrentRow(row); // trigger ulang combo refresh
 
-    QMessageBox::information(this, "Status Diperbarui",
-                             QString("Paket %1 diperbarui:\n"
-                                     "Lokasi: %2\n"
-                                     "Waktu dikurangi: %3 Jam\n"
-                                     "Sisa Waktu: %4 Jam")
+    QString infoWaktu = (pengurangan > 0)
+                            ? QString("Waktu dikurangi : %1 Jam (%2 Hari)\nSisa Waktu      : %3 Jam (%4 Hari)")
+                                  .arg(pengurangan).arg(double(pengurangan)/24.0, 0,'f',1)
+                                  .arg(o.sisaWaktuJam).arg(double(o.sisaWaktuJam)/24.0, 0,'f',1)
+                            : "Waktu tidak berubah (lokasi sama).";
+
+    QMessageBox::information(this, "✅ Status Diperbarui",
+                             QString("Paket   : %1\nLokasi  : %2\n\n%3")
                                  .arg(QString::fromStdString(o.idPelanggan))
-                                 .arg(lokasiBaru)
-                                 .arg(pengurangan)
-                                 .arg(o.sisaWaktuJam));
+                                 .arg(sampai ? QString::fromStdString(o.kotaTujuan) : lokasiBaru)
+                                 .arg(infoWaktu));
 }
 
 // ====================================================================
